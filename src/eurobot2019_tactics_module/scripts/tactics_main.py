@@ -11,17 +11,27 @@ DROP_SERVICE_NAME = "drop_module"
 PICKUP_SERVICE_NAME = "pickup_module"
 COLLISION_AVOIDANCE_TOPIC = "collision_avoidance"
 
+# Called when there's an obstacle coming towards us!
+def collision_callback():
+    pass
+
 def main(args):
+    # Wait for the drop and pickup services to come on line
     rospy.wait_for_service(DROP_SERVICE_NAME)
     rospy.wait_for_service(PICKUP_SERVICE_NAME)
 
-    pub = rospy.Publisher(PATH_PLAN_TOPIC, 2dPoint, queue_size=1)
+    # Advertise as a publisher on the PATH_PLAN_TOPIC
+    # Todo: Replace Empty with the correct message type
+    path_pub = rospy.Publisher(PATH_PLAN_TOPIC, Empty, queue_size=1)
+    
+    # Listen on the COLLISION_AVOIDANCE topic
+    rospy.Subscriber(COLLISION_AVOIDANCE_TOPIC, Empty, collision_callback)
 
-    # 10 Hz
+    # 10 Hz update rate
     rate = rospy.Rate(10)
 
     while not rospy.is_shutdown():
-        pass
+        rospy.spinOnce()
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description="Main entry point for ICRS' Eurobot entry")
