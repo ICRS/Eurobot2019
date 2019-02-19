@@ -1,8 +1,8 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(eurobot2019_path_planning_module)
 
-# Compile as C++11, supported in ROS Kinetic and newer
-add_compile_options(-std=c++11)
+# Compile as C++14, supported in ROS Kinetic and newer
+add_compile_options(-std=c++14)
 
 # Find catkin macros and libraries
 # if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
@@ -49,7 +49,6 @@ include_directories(
 # The recommended prefix ensures that target names across packages don't collide
 add_executable(path_planning_node 
   path_plan/path_planning_node.cpp
-  path_plan/src/tactics_interface.cpp
 )
 # Add cmake target dependencies of the executable
 # same as for the library above
