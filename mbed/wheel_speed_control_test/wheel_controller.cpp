@@ -31,12 +31,6 @@
     }
 
     void set_target_vel(float vel_mm){
-      if (vel_mm < 0){
-
-      }
-      if (vel_mm > 0){
-
-      }
       target_vel_ = vel_mm;
     };
 
