@@ -8,8 +8,16 @@ class WheelController{
 
     // Update function to be called regularly by main loop
 void WheelController::update(float dt_s) {
+     float error = target_vel_ - current_vel_;
+     // Remove sudden jumps in timestep causing surprising results
+     if(dt_s > 0.1) dt_s = 0.1;
+       // Remove some noise from differentiation
+     prev_err_ = 0.5*error + 0.5*prev_err_;
+
+     float PID=calculate_PID(error, dt_s);
 
 
+}
 
 
 
@@ -28,7 +36,10 @@ void WheelController::update(float dt_s) {
     float calculate_velocity();
 
     // Calculate PID returns a result between -1 and 1
-    float calculate_PID(float error, float dt_s);
+float WheelController::calculate_PID(float error, float dt_s){
+      float pid = kp * error + ki * integrated_error_ + kd * prev_diff_;
+}
+
 
     // Write the signed velocity (between -1 and 1) to the motor
     void write_motor_values(float velocity);
