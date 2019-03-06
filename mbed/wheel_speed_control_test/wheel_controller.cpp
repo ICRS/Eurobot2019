@@ -18,8 +18,17 @@
       dir_ = 0;
     };
 
-    // Update function to be called regularly by main loop
-    void update(float dt_s);
+    void WheelController::update(float dt_s) {
+         float error = target_vel_ - current_vel_;
+         // Remove sudden jumps in timestep causing surprising results
+         if(dt_s > 0.1) dt_s = 0.1;
+           // Remove some noise from differentiation
+         prev_err_ = 0.5*error + 0.5*prev_err_;
+         int_err_ += error * dt_s;
+
+
+
+    }
 
     void set_target_vel(float vel_mm){
       if (vel_mm < 0){
@@ -37,7 +46,7 @@
 
     // PID constants
     float kp, ki, kd;
-private:
+
     // Returns the velocity of the wheel
     float calculate_velocity(){
       float rotations = ( (encoder_.getPulses() - prev_rotations) / (float) PULSES_PER_REVOLUTION );
@@ -45,10 +54,27 @@ private:
     };
 
     // Calculate PID returns a result between -1 and 1
-    float calculate_PID(float error, float dt_s);
+float WheelController::calculate_PID(float error, float dt_s){
+      float pid = kp * error + ki * int_error_ + kd * prev_err_;
+}
+
 
     // Write the signed velocity (between -1 and 1) to the motor
-    void write_motor_values(float velocity);
+void WheelController::write_motor_values(float velocity){
+     float velocity= calculate_PID(error, dt_s);
+     if(velocity > 1) velocity = 1;
+     if(velocity < -1) velocity = -1;
+
+     // Set motor values
+     if(velocity > 0) {
+         dir_ = 1;
+         // 1 - pid as the dir pin is high
+         pwm_.write(1.0f - velocity);
+     }
+     else {
+         dir_ = 0;
+         pwm_.write(velocity);
+}
 
     // Pins to control the motor via h-bridge
     PwmOut pwm_;
