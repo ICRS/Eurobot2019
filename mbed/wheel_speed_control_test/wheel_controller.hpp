@@ -9,9 +9,17 @@ public:
     WheelController(PinName pwm, PinName dir,
                     PinName enc_a, PinName enc_b);
     ~WheelController();
-    
+
     // Update function to be called regularly by main loop
-    void update();
+    void update(float dt_s);
+
+    void set_target_vel(float vel_mm){
+      target_vel_ = vel_mm;
+    };
+
+    void get_current_vel(){
+      retrun current_vel_;
+    };
 
     // PID constants
     float kp, ki, kd;
@@ -28,7 +36,7 @@ private:
     // Pins to control the motor via h-bridge
     PwmOut pwm_;
     DigitalOut dir_;
-    
+
     // Quadrature Encoder Interface to measure the speed of the motor
     QEI encoder_;
 
@@ -37,6 +45,12 @@ private:
 
     // Previous error
     float prev_err_;
+
+    // Target velocity
+    float target_vel_;
+
+    // Current velocity (for odometry?)
+    volatile float current_vel_;
 };
 
 #endif // __WHEEL_CONTROLLER_HPP__
