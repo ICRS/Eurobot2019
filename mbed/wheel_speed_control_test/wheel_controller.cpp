@@ -5,7 +5,7 @@
                     PinName enc_a, PinName enc_b)
     : pwm_(pwm_pin), dir_(dir_pin),
     encoder_(enc_a, enc_b, NC, PULSES_PER_REVOLUTION), // NC would be the PinIndex, but this does not have to be used
-    kp(0), ki(0), kd(0), prev_diff_(0), integrated_error_(0), prev_rotations(0) {
+    kp(0), ki(0), kd(0), prev_diff_(0), prev_err_(0), integrated_error_(0), prev_rotations(0) {
       // Setup pwm stuff
       // 10000 Hz pwm frequency
       pwm_.period(1.0f/10000.0f);
@@ -35,7 +35,7 @@
     float WheelController::calculate_PID(float dt_s){
       float error = target_vel_ - calculate_velocity(dt_s);
       // Remove sudden jumps in timestep causing surprising results
-      if(dt_s > 0.1) dt_s = 0.1;
+      if(dt_s > 0.1) dt_s = 0.1; // Is dt_s not always an int?
       // Remove some noise from differentiation
       prev_diff_ = 0.5 * (error - prev_err_)/dt_s + 0.5 * prev_diff_;
 

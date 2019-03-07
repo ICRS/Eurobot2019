@@ -6,6 +6,11 @@ int main() {
   // pwm, dir, enc_a, enc_b
     WheelController controller(NC, NC, NC, NC);
 
+    // Set PID values, change and test
+    controller.kp = 0.1;
+    controller.ki = 0;
+    controller.kd = 0;
+
     // Time keeping
     Timer timer;
     timer.start();
