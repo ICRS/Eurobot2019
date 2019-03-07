@@ -1,5 +1,5 @@
 #include "wheel_controller.hpp"
-#define RADIUS 10
+#define RADIUS 10 // in mm (?)
 
     WheelController::WheelController(PinName pwm, PinName dir,
                     PinName enc_a, PinName enc_b)
@@ -12,80 +12,57 @@
       pwm_.write(0.0f);
 
       // Encoder is PULSES_PER_REVOLUTION = 24 ppr (?), and 1 rotation is 2*pi*RADIUS = 20pi mm (?)
-      pos_per_pulse_ = 0.00261799387;
+      pos_per_pulse_ = 0.00261799387; // meters
 
       // 0 is clockwise, 1 is anti clockwise
       dir_ = 0;
-    };
-
-    void WheelController::update(float dt_s) {
-         float error = target_vel_ - current_vel_;
-         // Remove sudden jumps in timestep causing surprising results
-         if(dt_s > 0.1) dt_s = 0.1;
-           // Remove some noise from differentiation
-         prev_err_ = 0.5*error + 0.5*prev_err_;
-         int_err_ += error * dt_s;
-
-
-
     }
 
-    void set_target_vel(float vel_mm){
-      target_vel_ = vel_mm;
-    };
-
-    void get_current_vel(){
-      return current_vel_;
-    };
-
-    // PID constants
-    float kp, ki, kd;
+    void WheelController::update(float dt_s) {
+         write_motor_values(dt_s); // cut out? Make dt_s a member variable?
+    }
 
     // Returns the velocity of the wheel
-    float calculate_velocity(){
-      float rotations = ( (encoder_.getPulses() - prev_rotations) / (float) PULSES_PER_REVOLUTION );
-
-    };
+    float WheelController::calculate_velocity(float dt_s){
+      // Calculate distance travelled
+      float distance_meters = (encoder_.getPulses() - prev_rotations) * pos_per_pulse_;
+      // Update previous rotations
+      prev_rotations = encoder_.getPulses();
+      return current_vel_ = distance_meters/dt_s; // meters per microsecond, multiply by a million for meters per second (I think)
+    }
 
     // Calculate PID returns a result between -1 and 1
-float WheelController::calculate_PID(float error, float dt_s){
-      float pid = kp * error + ki * int_error_ + kd * prev_err_;
-}
+    float WheelController::calculate_PID(float dt_s){
+      float error = target_vel_ - calculate_velocity(dt_s);
+      // Remove sudden jumps in timestep causing surprising results
+      if(dt_s > 0.1) dt_s = 0.1;
+      // Remove some noise from differentiation
+      prev_diff_ = 0.5 * (error - prev_err_)/dt_s + 0.5 * prev_diff_;
+
+      int_err_ += error * dt_s;
+
+      float pid = kp * error + ki * int_error_ + kd * prev_diff_;
+
+      if(pid > 1) pid = 1;
+      if(pid < -1) pid = -1;
+
+      // Update previous error
+      prev_err_ = error;
+      return pid;
+    }
 
 
     // Write the signed velocity (between -1 and 1) to the motor
-void WheelController::write_motor_values(float velocity){
-     float velocity= calculate_PID(error, dt_s);
-     if(velocity > 1) velocity = 1;
-     if(velocity < -1) velocity = -1;
-
-     // Set motor values
-     if(velocity > 0) {
-         dir_ = 1;
-         // 1 - pid as the dir pin is high
-         pwm_.write(1.0f - velocity);
-     }
-     else {
-         dir_ = 0;
-         pwm_.write(velocity);
+    void WheelController::write_motor_values(float dt_s){
+    float pid = calculate_PID(dt_s);
+    // Set motor values
+    if(pid > 0) {
+        dir_ = 1;
+        // 1 - pid as the dir pin is high
+        pwm_.write(1.0f - pid);
+    }
+    else {
+        dir_ = 0;
+        pwm_.write(pid);
+    }
 }
-
-    // Pins to control the motor via h-bridge
-    PwmOut pwm_;
-    DigitalOut dir_;
-
-    // Quadrature Encoder Interface to measure the speed of the motor
-    QEI encoder_;
-
-    // Integrated error for PID
-    float int_err_;
-
-    // Previous error
-    float prev_err_;
-
-    // Target velocity
-    float target_vel_;
-
-    // Current velocity (for odometry?)
-    volatile float current_vel_;
-};
