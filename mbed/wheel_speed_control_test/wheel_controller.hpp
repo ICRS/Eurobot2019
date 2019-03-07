@@ -41,7 +41,6 @@ private:
     DigitalOut dir_;
 
     // Quadrature Encoder Interface to measure the speed of the motor
-    // NC would be  the PinIndex, but this does not have to be used
     QEI encoder_;
 
     // Integrated error for PID

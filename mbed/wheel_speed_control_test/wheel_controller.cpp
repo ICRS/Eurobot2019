@@ -4,7 +4,7 @@
     WheelController::WheelController(PinName pwm, PinName dir,
                     PinName enc_a, PinName enc_b)
     : pwm_(pwm_pin), dir_(dir_pin),
-    encoder_(enc_a, enc_b, NC, PULSES_PER_REVOLUTION),
+    encoder_(enc_a, enc_b, NC, PULSES_PER_REVOLUTION), // NC would be the PinIndex, but this does not have to be used
     kp(0), ki(0), kd(0), prev_diff_(0), integrated_error_(0), prev_rotations(0) {
       // Setup pwm stuff
       // 10000 Hz pwm frequency
