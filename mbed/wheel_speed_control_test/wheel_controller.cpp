@@ -1,22 +1,22 @@
 #include "wheel_controller.hpp"
-#define RADIUS 10 // in mm (?)
+#define RADIUS 0.03 // in m
 
 WheelController::WheelController(PinName pwm, PinName dir,
                     PinName enc_a, PinName enc_b)
-        : pwm_(pwm_pin), dir_(dir_pin),
+        : pwm_(pwm), dir_(dir),
           // NC would be the PinIndex, but this does not have to be used
-          encoder_(enc_a, enc_b, NC, PULSES_PER_REVOLUTION), 
-          kp(0), ki(0), kd(0), 
-          prev_diff_(0), prev_err_(0), 
-          integrated_error_(0), prev_rotations(0) {
+          encoder_(enc_a, enc_b, NC, PULSES_PER_REVOLUTION),
+          kp(0), ki(0), kd(0),
+          prev_diff_(0), prev_err_(0),
+          int_err_(0), prev_rotations(0) {
     // Setup pwm stuff
     // 10000 Hz pwm frequency
     pwm_.period(1.0f/10000.0f);
     pwm_.write(0.0f);
 
-    // Encoder is PULSES_PER_REVOLUTION = 24 ppr (?), and 1 rotation 
+    // Encoder is PULSES_PER_REVOLUTION = 24 ppr (?), and 1 rotation
     // is 2*pi*RADIUS = 20pi mm (?)
-    pos_per_pulse_ = 0.00261799387; // meters
+    pos_per_pulse_ = 2 * 3.1415926 * RADIUS / 24; // meters
 
     // 0 is clockwise, 1 is anti clockwise
     dir_ = 0;
@@ -27,19 +27,35 @@ void WheelController::update(float dt_s) {
 }
 
 // Returns the velocity of the wheel
-float WheelController::calculate_velocity(float dt_s){
-    // Calculate distance travelled
-    float distance_meters = (encoder_.getPulses() - prev_rotations) 
-                          * pos_per_pulse_;
+void WheelController::calculate_velocity(float dt_s){
+    // Calculate pulses travelled
+    float distance_meters = (encoder_.getPulses() - prev_rotations);
+
     // Update previous rotations
-    prev_rotations = encoder_.getPulses();
-    // meters per microsecond, multiply by a million for meters per second 
-    return current_vel_ = distance_meters/dt_s; 
+    prev_rotations += distance_meters;
+
+    // Calculate distance
+    distance_meters *= pos_per_pulse_;
+
+    // meters per second
+    current_vel_ = distance_meters/dt_s;
+
+    // Average
+    current_vel_ /= 10.0f;
+
+    // Update previous velocities
+    for(char i = 9; i != 0; i--) {
+        prev_vel_[i] = prev_vel_[i-1];
+        current_vel_ += prev_vel_[i-1] / 10.0f;
+    }
+
+    prev_vel_[0] = current_vel_;
 }
 
 // Calculate PID returns a result between -1 and 1
 float WheelController::calculate_PID(float dt_s){
-    float error = target_vel_ - calculate_velocity(dt_s);
+    calculate_velocity(dt_s);
+    float error = target_vel_ - current_vel_;
     // Remove sudden jumps in timestep causing surprising results
     if(dt_s > 0.1) dt_s = 0.1; // Is dt_s not always an int?
     // Remove some noise from differentiation
@@ -47,7 +63,7 @@ float WheelController::calculate_PID(float dt_s){
 
     int_err_ += error * dt_s;
 
-    float pid = kp * error + ki * int_error_ + kd * prev_diff_;
+    float pid = kp * error + ki * int_err_ + kd * prev_diff_;
 
     if(pid > 1) pid = 1;
     if(pid < -1) pid = -1;

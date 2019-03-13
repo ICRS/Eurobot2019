@@ -20,7 +20,7 @@ public:
     };
 
     // Current velocity (for odometry?)
-    void get_current_vel(){
+    float get_current_vel(){
       return current_vel_;
     };
 
@@ -28,7 +28,7 @@ public:
     float kp, ki, kd;
 private:
     // Returns the velocity of the wheel
-    float calculate_velocity(float dt_s);
+    void calculate_velocity(float dt_s);
 
     // Calculate PID returns a result between -1 and 1
     float calculate_PID(float dt_s);
@@ -58,8 +58,13 @@ private:
     // Target velocity
     float target_vel_;
 
+    // position moved per pulse of encoder
+    float pos_per_pulse_;
+
     // Current velocity (for odometry?)
-    volatile float current_vel_;
+    float current_vel_;
+
+    float prev_vel_[10];
 };
 
 #endif // __WHEEL_CONTROLLER_HPP__
