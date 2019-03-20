@@ -1,4 +1,5 @@
 #include "wheel_controller.hpp"
+#include "QEI.h"
 #define RADIUS 0.03 // in m
 
 WheelController::WheelController(PinName pwm, PinName dir,
@@ -28,6 +29,21 @@ void WheelController::update(float dt_s) {
 
 // Returns the velocity of the wheel
 void WheelController::calculate_velocity(float dt_s){
+    // Alternative way of calculating velocity by timing the intervals between 2 consecutive pulses. If accepted, preserve the "update previous velocity" part below.
+    Timer timer;
+    timer.start();
+    //In compilier I realized that pulses_++or ((prevState_ == 0x2 && currState_ == 0x1) ||(prevState_ == 0x1 && currState_ == 0x2)) couldn't compile.
+    // So the following code now only illustrates the idea:(
+    if (pulses_ ++){
+      dt_s = timer.read();
+      timer.reset();
+      current_vel_ = pos_per_pulse_/dt_s;
+    }
+    else if (pulses_ --){
+      dt_s = timer.read();
+      timer.reset();
+      current_vel_ = -pos_per_pulse_/dt_s;
+    }
     // Calculate pulses travelled
     float distance_meters = (encoder_.getPulses() - prev_rotations);
 
