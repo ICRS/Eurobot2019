@@ -21,8 +21,10 @@ int main(int argc, char **argv) {
                                   10, "grabber_motors");
 
     // check names of channels
+    //publisher: nav_msgs/Odometry for Odom
+    //publisher: geomrtry_megs/Twist for cmd_vel
     MessageInterface<std_msgs::Empty, std_msgs::Empty>
-                navigation_interface(100, "odometry",
+                navigation_interface(100, "odom",
                                   10, "cmd_vel");
 
 
