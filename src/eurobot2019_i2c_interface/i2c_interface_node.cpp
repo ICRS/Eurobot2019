@@ -1,31 +1,40 @@
+#define __PC_TEST__
+
 #include <ros/ros.h>
 
 #include "message_interface.hpp"
 #include <string>
 #include <sstream>
 
+// Preprocessor macro to check if we're running on RPi or test pc
+#ifdef __PC_TEST__
+#include <iostream> // For debugging
+#else
+#include <pigpio>
+#endif
+
 int main(int argc, char **argv) {
     // Init ROS
-    ros::init(argc, argv, "I2C_interface_module");
+    ros::init(argc, argv, "i2c_interface");
 
     // Get node handle
     ros::NodeHandle node_handle;
 
     MessageInterface<std_msgs::Empty, std_msgs::Empty>
                 drop_interface(100, "drop_status",
-                                  10, "drop_motors");
+                               10 , "drop_motors");
 
     // Create Localisaion interface
     MessageInterface<std_msgs::Empty, std_msgs::Empty>
                 grabber_interface(100, "grabber_status",
-                                  10, "grabber_motors");
+                                  10 , "grabber_motors");
 
     // check names of channels
     //publisher: nav_msgs/Odometry for Odom
     //publisher: geomrtry_megs/Twist for cmd_vel
     MessageInterface<std_msgs::Empty, std_msgs::Empty>
                 navigation_interface(100, "odom",
-                                  10, "cmd_vel");
+                                     10 , "cmd_vel");
 
 
     // Control loop rate to be 100 Hz
@@ -52,6 +61,12 @@ int main(int argc, char **argv) {
         drop_interface.set_msg(drop_status_msg);
         grabber_interface.set_msg(grabber_status_msg);
         navigation_interface.set_msg(odometry_msg);
+        
+#ifdef __PC_TEST__
+        std::cout << "Set pin 14 to 1" << std::endl;
+#else
+        gpioWrite(14, 1);
+#endif
 
         // Keep update frequency
         loop_rate.sleep();
