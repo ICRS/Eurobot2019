@@ -4,6 +4,7 @@
 
 #include "message_interface.hpp"
 #include <string>
+#include <vector>
 
 // Preprocessor macro to check if we're running on RPi or test pc
 #ifdef __PC_TEST__
@@ -12,7 +13,9 @@
 #include <pigpio>
 #endif
 
-std::string get_drive_i2c_msg(std_msgs::Empty);
+std::string get_drive_i2c_msg(std_msgs::Empty msg);
+void Twist_to_wheel_vel(geometry_msgs::Twist cmd_vel);
+void Wheel_vel_to_Odom(std::vector<float32> drive_motor_msg, std::vector<float32> drive_motor_msg);
 
 int main(int argc, char **argv) {
     // Init ROS
@@ -32,16 +35,20 @@ int main(int argc, char **argv) {
 
     // check names of channels
     //publisher: nav_msgs/Odometry for Odom
-    //publisher: geomrtry_msgs/Twist for cmd_vel
+    //publisher: geometry_msgs/Twist for cmd_vel
     MessageInterface<std_msgs::Empty, std_msgs::Empty>
                 navigation_interface(100, "odom",
                                      10 , "cmd_vel");
+
 
 
     // Control loop rate to be 100 Hz
     ros::Rate loop_rate(100);
 
     int count = 0;
+
+    // initialise this to be zero for everything
+    std_msgs::Empty odometry_msg;
 
     // Main loop
     while(ros::ok()) {
@@ -58,7 +65,6 @@ int main(int argc, char **argv) {
         // Get from I2C(?)
         std_msgs::Empty drop_status_msg;
         std_msgs::Empty grabber_status_msg;
-        std_msgs::Empty odometry_msg;
 
         // Assume velocities are in a variable called drive_msg
 
@@ -91,27 +97,52 @@ int main(int argc, char **argv) {
     float32 M4
 */
 
+std::vector<float32> Twist_to_wheel_vel(geometry_msgs::Twist cmd_vel){
+  std::vector<float32> drive_motor_msg;
+  // Gives rotations per second (frequency)
+  // x +ve is forward, y +ve is left
+  drive_motor_msg[0] = (cmd_vel.linear.x - cmd_vel.linear.y - 261.236363668644*cmd_vel.angular.z)/26; //top left
+  drive_motor_msg[1] = (cmd_vel.linear.x + cmd_vel.linear.y + 261.236363668644*cmd_vel.angular.z)/26; //top right
+  drive_motor_msg[2] = (cmd_vel.linear.x + cmd_vel.linear.y - 187.763636356656*cmd_vel.angular.z)/26; //bottom left
+  drive_motor_msg[3] = (cmd_vel.linear.x - cmd_vel.linear.y + 187.763636356656*cmd_vel.angular.z)/26; //bottom right
+}
+
+void Wheel_vel_to_Odom(/*Way to access current position */, const std::vector<float32>& drive_motor_msg){
+  Odom.Twist.linear.x = (drive_motor_msg[0] + drive_motor_msg[1] + drive_motor_msg[2] + drive_motor_msg[3])*6.5;
+  Odom.Twist.linear.y = (-drive_motor_msg[0] + drive_motor_msg[1] + drive_motor_msg[2] - drive_motor_msg[3])*6.5;
+  Odom.Twist.angular.z = (-0.003827951*drive_motor_msg[0] + 0.003827951*drive_motor_msg[1] - 0.005325845*drive_motor_msg[2] + 0.005325845*drive_motor_msg[3])*6.5;
+
+  double dt = // ??;
+  double delta_x = (Odom.Twist.linear.x * cos(Odom.Twist.angular.z) - Odom.Twist.linear.y * sin(Odom.Twist.angular.z)) * dt;
+  double delta_y = (Odom.Twist.linear.x * sin(Odom.Twist.angular.z) + Odom.Twist.linear.y * cos(Odom.Twist.angular.z)) * dt;
+  double delta_th = /*current angle*/ * dt;
+
+
+}
+
+
+
 
 void send_drive_i2c_msg(drive_motor_msg){
   std::string i2c_msg;
-  // save pointer for speed of M1 in char pointer d
-  char *d = &drive_motor_msg.M1;
+  // save pointer for speed of  in char pointer d
+  char *d = &drive_motor_msg[0];
   for(int i = 0; i < 4; i++){
     // dereference every byte of M1 as a char into i2c_msg
     i2c_msg += *(d++);
   }
 
-  char *d = &drive_motor_msg.M2;
+  char *d = &drive_motor_msg[1];
   for(int i = 0; i < 4; i++){
     i2c_msg += *(d++);
   }
 
-  char *d = &drive_motor_msg.M3;
+  char *d = &drive_motor_msg[2];
   for(int i = 0; i < 4; i++){
     i2c_msg += *(d++);
   }
 
-  char *d = &drive_motor_msg.M4;
+  char *d = &drive_motor_msg[3];
   for(int i = 0; i < 4; i++){
     i2c_msg += *(d++);
   }
