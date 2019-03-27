@@ -2,7 +2,7 @@
 #define __I2C_HPP__
 
 #include <map>
-#include <int>
+#include <string>
 
 #ifdef __PC_TEST__
 #include <iostream> // for debugging
