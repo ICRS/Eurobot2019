@@ -5,6 +5,7 @@
 #include "message_interface.hpp"
 #include <string>
 #include <vector>
+#include <i2c.hpp>
 
 // Preprocessor macro to check if we're running on RPi or test pc
 #ifdef __PC_TEST__
@@ -13,7 +14,7 @@
 #include <pigpio>
 #endif
 
-std::string get_drive_i2c_msg(std_msgs::Empty msg);
+void send_drive_i2c_msg(I2C i2c_drive, const std::vector<float32>& drive_motor_msg);
 void Twist_to_wheel_vel(geometry_msgs::Twist cmd_vel);
 void Wheel_vel_to_Odom(std::vector<float32> drive_motor_msg, std::vector<float32> drive_motor_msg);
 
@@ -50,6 +51,9 @@ int main(int argc, char **argv) {
     // initialise this to be zero for everything
     std_msgs::Empty odometry_msg;
 
+    // create i2c_drive to be used in send_drive_i2c_msg() to send along i2c_msg along I2C
+    I2C i2c_drive;
+
     // Main loop
     while(ros::ok()) {
         // Do stuff
@@ -66,10 +70,9 @@ int main(int argc, char **argv) {
         std_msgs::Empty drop_status_msg;
         std_msgs::Empty grabber_status_msg;
 
-        // Assume velocities are in a variable called drive_msg
+        // Assume velocities are in a variable called drive_motor_msg
 
-        send_drive_i2c_msg(drive_msg);
-
+        send_drive_i2c_msg(&i2c_drive, drive_motor_msg);
 
         drop_interface.set_msg(drop_status_msg);
         grabber_interface.set_msg(grabber_status_msg);
@@ -123,29 +126,30 @@ void Wheel_vel_to_Odom(/*Way to access current position */, const std::vector<fl
 
 
 
-void send_drive_i2c_msg(drive_motor_msg){
-  std::string i2c_msg;
+void send_drive_i2c_msg(I2C *i2c_drive, const std::vector<float32>& drive_motor_msg){
+  std::string drive_i2c_msg;
   // save pointer for speed of  in char pointer d
   char *d = &drive_motor_msg[0];
   for(int i = 0; i < 4; i++){
     // dereference every byte of M1 as a char into i2c_msg
-    i2c_msg += *(d++);
+    drive_i2c_msg += *(d++);
   }
 
   char *d = &drive_motor_msg[1];
   for(int i = 0; i < 4; i++){
-    i2c_msg += *(d++);
+    drive_i2c_msg += *(d++);
   }
 
   char *d = &drive_motor_msg[2];
   for(int i = 0; i < 4; i++){
-    i2c_msg += *(d++);
+    drive_i2c_msg += *(d++);
   }
 
   char *d = &drive_motor_msg[3];
   for(int i = 0; i < 4; i++){
-    i2c_msg += *(d++);
+    drive_i2c_msg += *(d++);
   }
+  //Send the converted drive_motor_msg from the interface to a target unknown in DRIVE.
+  i2c_drive->write(DRIVE, drive_i2c_msg);
 
-  // send along i2c_msg along I2C
 }
