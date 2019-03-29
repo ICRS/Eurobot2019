@@ -34,7 +34,7 @@ include_directories(
 )
 
 ## Declare a C++ executable
-add_executable(${PROJECT_NAME}_node 
+add_executable(${PROJECT_NAME}_node
   i2c_interface_node.cpp
   src/i2c.cpp
 )
