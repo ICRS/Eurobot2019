@@ -3,7 +3,7 @@
 #include <eurobot2019_messages/pickup.h>
 #include <queue>
 
-#include <std_msgs/Bool.h>
+#include <std_msgs/Int32.h>
 
 #include "message_interface.hpp"
 #include "state_manager.hpp"
@@ -26,7 +26,7 @@ int main(int argc, char **argv) {
                 hardware(10, "grabber_motors", 10, "grabber_status");
 
     // Create interface to the tactics node
-    MessageInterface<std_msgs::Bool, eurobot2019_messages::pickup>
+    MessageInterface<std_msgs::Int32, eurobot2019_messages::pickup>
                 command(10, "pickup_status", 10, "pickup");
 
     // Create state manager instance
@@ -38,12 +38,20 @@ int main(int argc, char **argv) {
     // Set the target message for the grabber
     hardware.set_msg(motor_msg);
 
-    // Set the old message
+    // Create the old message
     eurobot2019_messages::pickup old_command_msg;
+
+    // Create the target message for tactics node
+    std_msgs::Int32 pickup_status_msg;
 
     // Create a queue to manage the state order
     std::queue<GrabberStates> state_queue;
     state_queue.push(IDLE_BACK);
+    
+    // Stack is size 1 so set the msg
+    pickup_status_msg.data = 1;
+    command.set_msg(pickup_status_msg);
+
 
     // 100 Hz update rate
     ros::Rate sleeper(100);
@@ -145,6 +153,9 @@ int main(int argc, char **argv) {
         }
         // Then everything is in the correct place, so update the state
         else {
+            // Update message before the queue size changes
+            // so it include the currently processing one
+            pickup_status_msg.data = state_queue.size();
             if(state_queue.size()) {
                 target_msg = state_manager.get_target(state_queue.front());
                 state_queue.pop();
