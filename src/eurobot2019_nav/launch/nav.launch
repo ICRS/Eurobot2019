@@ -1,0 +1,5 @@
+<launch>
+    <node pkg="urg_node" type="urg_node" name="hokuyo" output="screen"/>
+
+    <node pkg="eurobot2019_tf" type="node" name="transforms" output="screen"/>
+</launch>
