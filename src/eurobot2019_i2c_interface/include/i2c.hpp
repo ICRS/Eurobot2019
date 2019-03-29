@@ -4,6 +4,8 @@
 #include <map>
 #include <string>
 
+#define __PC_TEST__
+
 #ifdef __PC_TEST__
 #include <iostream> // for debugging
 #else

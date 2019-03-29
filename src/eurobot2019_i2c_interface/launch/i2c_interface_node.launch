@@ -1,19 +1,19 @@
 <launch>
   <node name="i2c_interface_node" pkg="eurobot2019_i2c_interface" type="node" />
   <!-- Params to set initial position + orientation for Odometry -->
-    <param name="pose.point.x" value="0" />
-    <param name="pose.point.y" value="0" />
-    <param name="pose.point.z" value="0" />
-    <param name="pose.orientation.quaternion.x" value="0" />
-    <param name="pose.orientation.quaternion.y" value="0" />
-    <param name="pose.orientation.quaternion.z" value="0" />
-    <param name="pose.orientation.quaternion.w" value="0" />
-    <param name="twist.linear.x" value="0" />
-    <param name="twist.linear.y" value="0" />
-    <param name="twist.linear.z" value="0" />
-    <param name="twist.angular.x" value="0" />
-    <param name="twist.angular.y" value="0" />
-    <param name="twist.angular.z" value="0" />
+    <param name="pose_point_x" value="0" type="double"/>
+    <param name="pose_point_y" value="0" type="double"/>
+    <param name="pose_point_z" value="0" type="double"/>
+    <param name="pose_orientation_quaternion_x" value="0" type="double"/>
+    <param name="pose_orientation_quaternion_y" value="0" type="double"/>
+    <param name="pose_orientation_quaternion_z" value="0" type="double"/>
+    <param name="pose_orientation_quaternion_w" value="0" type="double"/>
+    <param name="twist_linear_x" value="0" type="double"/>
+    <param name="twist_linear_y" value="0" type="double"/>
+    <param name="twist_linear_z" value="0" type="double"/>
+    <param name="twist_angular_x" value="0" type="double"/>
+    <param name="twist_angular_y" value="0" type="double"/>
+    <param name="twist_angular_z" value="0" type="double"/>
     <!-- This Param directly gives initial z-axis, 2-D, angular orientation for Odometry -->
-    <param name="pose.orientation.angular" value="0" />
+    <param name="pose_orientation_angular" value="0" type="double"/>
 </launch>
