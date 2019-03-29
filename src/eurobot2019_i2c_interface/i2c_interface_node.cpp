@@ -9,7 +9,11 @@
 #include "std_msgs/Empty.h"
 #include "geometry_msgs/Twist.h"
 #include "nav_msgs/Odometry.h"
+#include "eurobot2019_messages/drop_status.h"
+#include "eurobot2019_messages/drop_motors.h"
+#include "eurobot2019_messages/grabber_motors.h"
 #include <i2c.hpp>
+#include <i2c_interface_to_mbed.hpp>
 #define RADIUS 26.0 //from center of wheel to centre of roller, mm
 
 
@@ -27,9 +31,6 @@ struct Quaterniond{
     double z;
 };
 
-void send_drive_i2c_msg(I2C *i2c_drive, const std::vector<float>& drive_motor_msg);
-void get_drive_i2c_msg(I2C *i2c_drive, std::vector<float>& drive_motor_msg);
-std::vector<float> twist_to_wheel_vel(geometry_msgs::Twist cmd_vel);
 void wheel_vel_to_odom(nav_msgs::Odometry& current_pos, double& current_angle, const std::vector<float>& wheel_vel_msg);
 Quaterniond toQuaternion(double yaw, double pitch, double roll);
 
@@ -46,12 +47,14 @@ int main(int argc, char **argv) {
 
     nav_msgs::Odometry current_pos;
     double current_angle;
+
+    I2C_interface_to_mbed i2c_interface;
+
     /*
     Instead, do like this:  if(!node_handle.getParam('pose.point.x', double){
         ROS ERROR("Failed to get ");
     }
     */
-
     node_handle.param<double>("pose_point_x", current_pos.pose.pose.position.x, 0);
     node_handle.param<double>("pose_point_y", current_pos.pose.pose.position.y, 0);
     node_handle.param<double>("pose_point_z", current_pos.pose.pose.position.z, 0);
@@ -67,12 +70,12 @@ int main(int argc, char **argv) {
     node_handle.param<double>("twist_angular_y", current_pos.twist.twist.angular.y, 0);
     node_handle.param<double>("twist_angular_z", current_pos.twist.twist.angular.z, 0);
 
-    MessageInterface<std_msgs::Empty, std_msgs::Empty>
+    MessageInterface<eurobot2019_messages::drop_status, eurobot2019_messages::drop_motors>
                 drop_interface(100, "drop_status",
                                10 , "drop_motors");
 
     // Create Localisaion interface
-    MessageInterface<std_msgs::Empty, std_msgs::Empty>
+    MessageInterface<std_msgs::Empty, eurobot2019_messages::grabber_motors>
                 grabber_interface(100, "grabber_status",
                                   10 , "grabber_motors");
 
@@ -93,9 +96,6 @@ int main(int argc, char **argv) {
     // initialise this to be zero for everything, (If using Empty messages to test ????)
     // std_msgs::Empty odometry_msg;
 
-    // create i2c_drive to be used in send_drive_i2c_msg() to send along i2c_msg along I2C
-    I2C i2c_drive;
-
     // Main loop
     while(ros::ok()) {
         // Do stuff
@@ -107,24 +107,24 @@ int main(int argc, char **argv) {
         auto drop_motors_msg = drop_interface.get_msg();
         auto cmd_vel_msg = navigation_interface.get_msg();
 
-        std::vector<float> drive_motor_msg = twist_to_wheel_vel(cmd_vel_msg);
+        i2c_interface.send_grabber_i2c_msg(grabber_motors_msg);
+        i2c_interface.send_dropper_i2c_msg(drop_motors_msg);
+        i2c_interface.send_drive_i2c_msg(cmd_vel_msg);
 
         // Create a message and set the current message to be sent
         // This will continue to be sent until a new message is set
         // Get from I2C, convert from string to usable values
-        std_msgs::Empty drop_status_msg;
-        std_msgs::Empty grabber_status_msg;
+        eurobot2019_messages::drop_status drop_status_msg;
+        std_msgs::Empty grabber_status_msg; //should be eurobot2019_messages::grabber_status
         std::vector<float> wheel_vel_msg;
         nav_msgs::Odometry odometry_msg; //convert from wheel speeds to twist + add pose
 
-        get_drive_i2c_msg(&i2c_drive, wheel_vel_msg);
-
+        i2c_interface.get_dropper_i2c_msg(drop_status_msg);
+        i2c_interface.get_drive_i2c_msg(wheel_vel_msg);
         wheel_vel_to_odom(current_pos, current_angle, wheel_vel_msg);
         odometry_msg = current_pos;
 
         // Assume velocities are in a variable called drive_motor_msg
-
-        send_drive_i2c_msg(&i2c_drive, drive_motor_msg);
 
         // messages taken from embed/arduino to be sent to nodes
         drop_interface.set_msg(drop_status_msg);
@@ -153,16 +153,6 @@ int main(int argc, char **argv) {
     float32 2
     float32 3
 */
-
-std::vector<float> twist_to_wheel_vel(geometry_msgs::Twist cmd_vel){
-  std::vector<float> drive_motor_msg;
-  // Gives rotations per second (frequency)
-  // x +ve is forward, y +ve is left, (need to check if same as navigation stack, if not change appropriately)
-  drive_motor_msg.push_back((cmd_vel.linear.x - cmd_vel.linear.y - 261.236363668644*cmd_vel.angular.z)/RADIUS); //top left
-  drive_motor_msg.push_back((cmd_vel.linear.x + cmd_vel.linear.y + 261.236363668644*cmd_vel.angular.z)/RADIUS); //top right
-  drive_motor_msg.push_back((cmd_vel.linear.x + cmd_vel.linear.y - 187.763636356656*cmd_vel.angular.z)/RADIUS); //bottom left
-  drive_motor_msg.push_back((cmd_vel.linear.x - cmd_vel.linear.y + 187.763636356656*cmd_vel.angular.z)/RADIUS); //bottom right
-}
 
 //converts wheel angular vels to the nav_msgs/Odometry format by updating current_pos.
 //current_angle is the 'euler' yaw, is saved for easy access
@@ -193,53 +183,6 @@ void wheel_vel_to_odom(nav_msgs::Odometry& current_pos, double& current_angle, c
     current_pos.pose.pose.orientation.y = q.y;
     current_pos.pose.pose.orientation.z = q.z;
     current_pos.pose.pose.orientation.w = q.w;
-}
-
-
-
-
-void send_drive_i2c_msg(I2C *i2c_drive, const std::vector<float>& drive_motor_msg){
-  std::string drive_i2c_msg;
-  // save pointer for speed of  in char pointer d
-  char *d = (char*)&(drive_motor_msg[0]);
-  for(int i = 0; i < 4; i++){
-    // dereference every byte of M1 as a char into i2c_msg
-    drive_i2c_msg += *(d++);
-  }
-
-  d = (char*)&(drive_motor_msg[1]);
-  for(int i = 0; i < 4; i++){
-    drive_i2c_msg += *(d++);
-  }
-
-  d = (char*)&(drive_motor_msg[2]);
-  for(int i = 0; i < 4; i++){
-    drive_i2c_msg += *(d++);
-  }
-
-  d = (char*)&(drive_motor_msg[3]);
-  for(int i = 0; i < 4; i++){
-    drive_i2c_msg += *(d++);
-  }
-  //Send the converted drive_motor_msg from the interface to a target unknown in DRIVE.
-  i2c_drive->write(DRIVE, drive_i2c_msg);
-
-  //i2c_msg is now a string containing characters encoding velocity values (float32)
-  // for drive motors in order top left, top right, bottom left, bottom right
-
-  // sends i2c_msg along I2C
-}
-
-void get_drive_i2c_msg(I2C *i2c_drive, std::vector<float>& wheel_vel_msg){
-    std::string wheel_vel_i2c_msg;
-    wheel_vel_i2c_msg = i2c_drive->read(DRIVE, 16); //reads motor values, length assumed to be 16
-    char str[16];
-    sprintf(str, "%s", wheel_vel_i2c_msg.c_str());
-    float* tmp = (float*)str;
-
-    for(int i = 0; i < 4; i++){
-        wheel_vel_msg.push_back(*(tmp++));
-    }
 }
 
 Quaterniond toQuaternion(double yaw, double pitch, double roll) // yaw (Z), pitch (Y), roll (X)
