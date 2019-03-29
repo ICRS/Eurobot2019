@@ -14,6 +14,7 @@ add_message_files(
   drop_status.msg
   drop_motors.msg
   grabber_motors.msg
+  pickup.msg
 )
 
 ## Generate services in the 'srv' folder
