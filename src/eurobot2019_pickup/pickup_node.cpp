@@ -56,7 +56,7 @@ int main(int argc, char **argv) {
         if(command_msg.is_vertical != old_command_msg.is_vertical ||
            command_msg.pos_reached != old_command_msg.pos_reached ||
            command_msg.colour != old_command_msg.colour) {
-            // TODO: Implement
+
             ROS_INFO("New command message received");
             old_command_msg = command_msg;
 
@@ -148,9 +148,10 @@ int main(int argc, char **argv) {
             if(state_queue.size()) {
                 target_msg = state_manager.get_target(state_queue.front());
                 state_queue.pop();
-                std::cout << target_msg << std::endl;
             }
         }
+
+        hardware.set_msg(motor_msg);
 
         // Maintain 100 Hz
         sleeper.sleep();
