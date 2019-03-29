@@ -21,9 +21,9 @@
 #endif
 
 void send_drive_i2c_msg(I2C i2c_drive, const std::vector<float>& drive_motor_msg);
-void get_drive_i2c_msg(const std::vector<float>& drive_motor_msg);
+void get_drive_i2c_msg(I2C *i2c_drive, const std::vector<float>& drive_motor_msg);
 std::vector<float> twist_to_wheel_vel(geometry_msgs::Twist cmd_vel);
-void wheel_vel_to_odom(nav_msgs::Odom& current_pos, double& current_angle, const std::vector<float>& drive_motor_msg);
+void wheel_vel_to_odom(nav_msgs::Odom& current_pos, double& current_angle, const std::vector<float>& wheel_vel_msg);
 
 struct Quaterniond{
     double w;
@@ -106,11 +106,12 @@ int main(int argc, char **argv) {
         // Get from I2C, convert from string to usable values
         std_msgs::Empty drop_status_msg;
         std_msgs::Empty grabber_status_msg;
+        std::vector<float> wheel_vel_msg;
         std_msgs::Empty odometry_msg; //convert from wheel speeds to twist + add pose
 
-        get_drive_i2c_msg(drive_motor_msg);
+        get_drive_i2c_msg(&i2c_drive, wheel_vel_msg);
 
-        wheel_vel_to_odom(current_pos, current_angle, drive_motor_msg);
+        wheel_vel_to_odom(current_pos, current_angle, wheel_vel_msg);
         odometry_msg = current_pos;
 
         // Assume velocities are in a variable called drive_motor_msg
@@ -149,22 +150,22 @@ std::vector<float> twist_to_wheel_vel(geometry_msgs::Twist cmd_vel){
   std::vector<float> drive_motor_msg;
   // Gives rotations per second (frequency)
   // x +ve is forward, y +ve is left, (need to check if same as navigation stack, if not change appropriately)
-  drive_motor_msg[0] = (cmd_vel.linear.x - cmd_vel.linear.y - 261.236363668644*cmd_vel.angular.z)/RADIUS; //top left
-  drive_motor_msg[1] = (cmd_vel.linear.x + cmd_vel.linear.y + 261.236363668644*cmd_vel.angular.z)/RADIUS; //top right
-  drive_motor_msg[2] = (cmd_vel.linear.x + cmd_vel.linear.y - 187.763636356656*cmd_vel.angular.z)/RADIUS; //bottom left
-  drive_motor_msg[3] = (cmd_vel.linear.x - cmd_vel.linear.y + 187.763636356656*cmd_vel.angular.z)/RADIUS; //bottom right
+  drive_motor_msg.push_back((cmd_vel.linear.x - cmd_vel.linear.y - 261.236363668644*cmd_vel.angular.z)/RADIUS); //top left
+  drive_motor_msg.push_back((cmd_vel.linear.x + cmd_vel.linear.y + 261.236363668644*cmd_vel.angular.z)/RADIUS); //top right
+  drive_motor_msg.push_back((cmd_vel.linear.x + cmd_vel.linear.y - 187.763636356656*cmd_vel.angular.z)/RADIUS); //bottom left
+  drive_motor_msg.push_back((cmd_vel.linear.x - cmd_vel.linear.y + 187.763636356656*cmd_vel.angular.z)/RADIUS); //bottom right
 }
 
 //converts wheel angular vels to the nav_msgs/Odometry format by updating current_pos.
 //current_angle is the 'euler' yaw, is saved for easy access
-void wheel_vel_to_odom(nav_msgs::Odom& current_pos, double& current_angle, const std::vector<float>& drive_motor_msg){
+void wheel_vel_to_odom(nav_msgs::Odom& current_pos, double& current_angle, const std::vector<float>& wheel_vel_msg){
     high_resolution_clock::time_point t2 = high_resolution_clock::now();
     duration<double> time_span = duration_cast<duration<double>>(t2 - t1);
     std::chrono::high_resolution_clock::time_point t1 = high_resolution_clock::now();
 
-    double linear_x = (drive_motor_msg[0] + drive_motor_msg[1] + drive_motor_msg[2] + drive_motor_msg[3])*(RADIUS/4.0);
-    double linear_y = (-drive_motor_msg[0] + drive_motor_msg[1] + drive_motor_msg[2] - drive_motor_msg[3])*(RADIUS/4.0);
-    double angular_z = (-0.003827951*drive_motor_msg[0] + 0.003827951*drive_motor_msg[1] - 0.005325845*drive_motor_msg[2] + 0.005325845*drive_motor_msg[3])*(RADIUS/4.0);
+    double linear_x = (wheel_vel_msg[0] + wheel_vel_msg[1] + wheel_vel_msg[2] + wheel_vel_msg[3])*(RADIUS/4.0);
+    double linear_y = (-wheel_vel_msg[0] + wheel_vel_msg[1] + wheel_vel_msg[2] - wheel_vel_msg[3])*(RADIUS/4.0);
+    double angular_z = (-0.003827951*wheel_vel_msg[0] + 0.003827951*wheel_vel_msg[1] - 0.005325845*wheel_vel_msg[2] + 0.005325845*wheel_vel_msg[3])*(RADIUS/4.0);
 
     double dt = time_span.count();
     double delta_x = (linear_x * cos(current_angle) - linear_y * sin(current_angle)) * dt;
@@ -188,7 +189,7 @@ void wheel_vel_to_odom(nav_msgs::Odom& current_pos, double& current_angle, const
 
 
 
-void send_drive_i2c_msg(I2C *i2c_drive, const std::vector<float32>& drive_motor_msg){
+void send_drive_i2c_msg(I2C *i2c_drive, const std::vector<float>& drive_motor_msg){
   std::string drive_i2c_msg;
   // save pointer for speed of  in char pointer d
   char *d = &drive_motor_msg[0];
@@ -220,8 +221,16 @@ void send_drive_i2c_msg(I2C *i2c_drive, const std::vector<float32>& drive_motor_
   // sends i2c_msg along I2C
 }
 
-void get_drive_i2c_msg(const std::vector<float>& drive_motor_msg){
-
+void get_drive_i2c_msg(I2C *i2c_drive, std::vector<float>& wheel_vel_msg){
+    std::string wheel_vel_i2c_msg;
+    wheel_vel_i2c_msg = i2c_drive->read(DRIVE, 16); //reads motor values, length assumed to be 16
+    char str[16];
+    strcpy(str, "%s", wheel_vel_i2c_msg.c_str());
+    float* tmp = &str;
+    
+    for(int i = 0; i < 4; i++){
+        wheel_vel_msg.push_back(*(tmp++));
+    }
 }
 
 Quaterniond toQuaternion(double yaw, double pitch, double roll) // yaw (Z), pitch (Y), roll (X)
