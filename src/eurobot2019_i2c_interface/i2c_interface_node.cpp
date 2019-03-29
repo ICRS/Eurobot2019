@@ -62,7 +62,7 @@ int main(int argc, char **argv) {
     }
 
     for(int i = 0; i < 36; i++){
-        current_pos.twist.twist.covariance[i] = 0;
+        current_pos.twist.covariance[i] = 0;
     }
 
     node_handle.param<double>("pose_point_x", current_pos.pose.pose.position.x, 0);
