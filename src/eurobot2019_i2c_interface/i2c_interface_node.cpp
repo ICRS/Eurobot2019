@@ -8,8 +8,8 @@
 #include <chrono>
 #include "std_msgs/Empty.h"
 #include "geometry_msgs/Twist.h"
-#include "nav_msgs/Odom.h"
-#include "i2c.hpp"
+#include "nav_msgs/Odometry.h"
+#include <i2c.hpp>
 #define RADIUS 26.0 //from center of wheel to centre of roller, mm
 
 
@@ -20,17 +20,22 @@
 #include <pigpio>
 #endif
 
-void send_drive_i2c_msg(I2C i2c_drive, const std::vector<float>& drive_motor_msg);
-void get_drive_i2c_msg(I2C *i2c_drive, const std::vector<float>& drive_motor_msg);
-std::vector<float> twist_to_wheel_vel(geometry_msgs::Twist cmd_vel);
-void wheel_vel_to_odom(nav_msgs::Odom& current_pos, double& current_angle, const std::vector<float>& wheel_vel_msg);
-
 struct Quaterniond{
     double w;
     double x;
     double y;
     double z;
 };
+
+void send_drive_i2c_msg(I2C *i2c_drive, const std::vector<float>& drive_motor_msg);
+void get_drive_i2c_msg(I2C *i2c_drive, std::vector<float>& drive_motor_msg);
+std::vector<float> twist_to_wheel_vel(geometry_msgs::Twist cmd_vel);
+void wheel_vel_to_odom(nav_msgs::Odometry& current_pos, double& current_angle, const std::vector<float>& wheel_vel_msg);
+Quaterniond toQuaternion(double yaw, double pitch, double roll);
+
+std::chrono::high_resolution_clock::time_point t1 = std::chrono::high_resolution_clock::now();
+// This time is set as a global variable to allow first run of wheel_vel_to_odom() without passing t1 into function
+
 
 int main(int argc, char **argv) {
     // Init ROS
@@ -39,25 +44,28 @@ int main(int argc, char **argv) {
     // Get node handle
     ros::NodeHandle node_handle;
 
-    std::chrono::high_resolution_clock::time_point t1 = high_resolution_clock::now();
-
-    nav_msgs::Odom current_pos;
+    nav_msgs::Odometry current_pos;
     double current_angle;
+    /*
+    Instead, do like this:  if(!node_handle.getParam('pose.point.x', double){
+        ROS ERROR("Failed to get ");
+    }
+    */
 
-    node_handle.param("pose.point.x", current_pos.pose.pose.position.x, 0);
-    node_handle.param("pose.point.y", current_pos.pose.pose.position.y, 0);
-    node_handle.param("pose.point.z", current_pos.pose.pose.position.z, 0);
-    node_handle.param("pose.orientation.quaternion.x", current_pos.pose.pose.orientation.x, 0);
-    node_handle.param("pose.orientation.quaternion.y", current_pos.pose.pose.orientation.y, 0);
-    node_handle.param("pose.orientation.quaternion.z", current_pos.pose.pose.orientation.z, 0);
-    node_handle.param("pose.orientation.quaternion.w", current_pos.pose.pose.orientation.w, 0);
-    node_handle.param("pose.orientation.angle", current_angle, 0);
-    node_handle.param("twist.linear.x", current_pos.twist.twist.linear.x, 0);
-    node_handle.param("twist.linear.y", current_pos.twist.twist.linear.y, 0);
-    node_handle.param("twist.linear.z", current_pos.twist.twist.linear.z, 0);
-    node_handle.param("twist.angular.x", current_pos.twist.twist.angular.x, 0);
-    node_handle.param("twist.angular.y", current_pos.twist.twist.angular.y, 0);
-    node_handle.param("twist.angular.z", current_pos.twist.twist.angular.z, 0);
+    node_handle.param<double>("pose_point_x", current_pos.pose.pose.position.x, 0);
+    node_handle.param<double>("pose_point_y", current_pos.pose.pose.position.y, 0);
+    node_handle.param<double>("pose_point_z", current_pos.pose.pose.position.z, 0);
+    node_handle.param<double>("pose_orientation_quaternion_x", current_pos.pose.pose.orientation.x, 0);
+    node_handle.param<double>("pose_orientation_quaternion_y", current_pos.pose.pose.orientation.y, 0);
+    node_handle.param<double>("pose_orientation_quaternion_z", current_pos.pose.pose.orientation.z, 0);
+    node_handle.param<double>("pose_orientation_quaternion_w", current_pos.pose.pose.orientation.w, 0);
+    node_handle.param<double>("pose_orientation_angle", current_angle, 0);
+    node_handle.param<double>("twist_linear_x", current_pos.twist.twist.linear.x, 0);
+    node_handle.param<double>("twist_linear_y", current_pos.twist.twist.linear.y, 0);
+    node_handle.param<double>("twist_linear_z", current_pos.twist.twist.linear.z, 0);
+    node_handle.param<double>("twist_angular_x", current_pos.twist.twist.angular.x, 0);
+    node_handle.param<double>("twist_angular_y", current_pos.twist.twist.angular.y, 0);
+    node_handle.param<double>("twist_angular_z", current_pos.twist.twist.angular.z, 0);
 
     MessageInterface<std_msgs::Empty, std_msgs::Empty>
                 drop_interface(100, "drop_status",
@@ -71,7 +79,7 @@ int main(int argc, char **argv) {
     // check names of channels
     //publisher: nav_msgs/Odometry for Odom
     //subscriber: geometry_msgs/Twist for cmd_vel
-    MessageInterface<std_msgs::Empty, std_msgs::Empty>
+    MessageInterface<nav_msgs::Odometry, geometry_msgs::Twist>
                 navigation_interface(100, "odom",
                                      10 , "cmd_vel");
 
@@ -107,7 +115,7 @@ int main(int argc, char **argv) {
         std_msgs::Empty drop_status_msg;
         std_msgs::Empty grabber_status_msg;
         std::vector<float> wheel_vel_msg;
-        std_msgs::Empty odometry_msg; //convert from wheel speeds to twist + add pose
+        nav_msgs::Odometry odometry_msg; //convert from wheel speeds to twist + add pose
 
         get_drive_i2c_msg(&i2c_drive, wheel_vel_msg);
 
@@ -116,7 +124,7 @@ int main(int argc, char **argv) {
 
         // Assume velocities are in a variable called drive_motor_msg
 
-        send_drive_i2c_msg(drive_motor_msg);
+        send_drive_i2c_msg(&i2c_drive, drive_motor_msg);
 
         // messages taken from embed/arduino to be sent to nodes
         drop_interface.set_msg(drop_status_msg);
@@ -158,10 +166,10 @@ std::vector<float> twist_to_wheel_vel(geometry_msgs::Twist cmd_vel){
 
 //converts wheel angular vels to the nav_msgs/Odometry format by updating current_pos.
 //current_angle is the 'euler' yaw, is saved for easy access
-void wheel_vel_to_odom(nav_msgs::Odom& current_pos, double& current_angle, const std::vector<float>& wheel_vel_msg){
-    high_resolution_clock::time_point t2 = high_resolution_clock::now();
-    duration<double> time_span = duration_cast<duration<double>>(t2 - t1);
-    std::chrono::high_resolution_clock::time_point t1 = high_resolution_clock::now();
+void wheel_vel_to_odom(nav_msgs::Odometry& current_pos, double& current_angle, const std::vector<float>& wheel_vel_msg){
+    std::chrono::high_resolution_clock::time_point t2 = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> time_span = std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1);
+    std::chrono::high_resolution_clock::time_point t1 = std::chrono::high_resolution_clock::now();
 
     double linear_x = (wheel_vel_msg[0] + wheel_vel_msg[1] + wheel_vel_msg[2] + wheel_vel_msg[3])*(RADIUS/4.0);
     double linear_y = (-wheel_vel_msg[0] + wheel_vel_msg[1] + wheel_vel_msg[2] - wheel_vel_msg[3])*(RADIUS/4.0);
@@ -172,7 +180,8 @@ void wheel_vel_to_odom(nav_msgs::Odom& current_pos, double& current_angle, const
     double delta_y = (linear_x * sin(current_angle) + linear_y * cos(current_angle)) * dt;
     double delta_th = angular_z * dt;
 
-    Quaterniond q = toQuaternion(angular_z, 0, 0);
+    Quaterniond q;
+    q = toQuaternion(angular_z, 0, 0);
 
     current_angle += delta_th;
     current_pos.pose.pose.position.x += delta_x;
@@ -192,23 +201,23 @@ void wheel_vel_to_odom(nav_msgs::Odom& current_pos, double& current_angle, const
 void send_drive_i2c_msg(I2C *i2c_drive, const std::vector<float>& drive_motor_msg){
   std::string drive_i2c_msg;
   // save pointer for speed of  in char pointer d
-  char *d = &drive_motor_msg[0];
+  char *d = (char*)&(drive_motor_msg[0]);
   for(int i = 0; i < 4; i++){
     // dereference every byte of M1 as a char into i2c_msg
     drive_i2c_msg += *(d++);
   }
 
-  char *d = &drive_motor_msg[1];
+  d = (char*)&(drive_motor_msg[1]);
   for(int i = 0; i < 4; i++){
     drive_i2c_msg += *(d++);
   }
 
-  char *d = &drive_motor_msg[2];
+  d = (char*)&(drive_motor_msg[2]);
   for(int i = 0; i < 4; i++){
     drive_i2c_msg += *(d++);
   }
 
-  char *d = &drive_motor_msg[3];
+  d = (char*)&(drive_motor_msg[3]);
   for(int i = 0; i < 4; i++){
     drive_i2c_msg += *(d++);
   }
@@ -218,16 +227,16 @@ void send_drive_i2c_msg(I2C *i2c_drive, const std::vector<float>& drive_motor_ms
   //i2c_msg is now a string containing characters encoding velocity values (float32)
   // for drive motors in order top left, top right, bottom left, bottom right
 
-  // send i2c_msg along I2C
+  // sends i2c_msg along I2C
 }
 
 void get_drive_i2c_msg(I2C *i2c_drive, std::vector<float>& wheel_vel_msg){
     std::string wheel_vel_i2c_msg;
     wheel_vel_i2c_msg = i2c_drive->read(DRIVE, 16); //reads motor values, length assumed to be 16
     char str[16];
-    strcpy(str, "%s", wheel_vel_i2c_msg.c_str());
-    float* tmp = &str;
-    
+    sprintf(str, "%s", wheel_vel_i2c_msg.c_str());
+    float* tmp = (float*)str;
+
     for(int i = 0; i < 4; i++){
         wheel_vel_msg.push_back(*(tmp++));
     }
@@ -244,9 +253,9 @@ Quaterniond toQuaternion(double yaw, double pitch, double roll) // yaw (Z), pitc
     double sr = sin(roll * 0.5);
 
     Quaterniond q;
-    q.w() = cy * cp * cr + sy * sp * sr;
-    q.x() = cy * cp * sr - sy * sp * cr;
-    q.y() = sy * cp * sr + cy * sp * cr;
-    q.z() = sy * cp * cr - cy * sp * sr;
+    q.w = cy * cp * cr + sy * sp * sr;
+    q.x = cy * cp * sr - sy * sp * cr;
+    q.y = sy * cp * sr + cy * sp * cr;
+    q.z = sy * cp * cr - cy * sp * sr;
     return q;
 }
