@@ -1,0 +1,19 @@
+<launch>
+  <node name="i2c_interface_node" pkg="eurobot2019_i2c_interface" type="node" />
+  <!-- Params to set initial position + orientation for Odometry -->
+    <param name="pose.point.x" value="0" />
+    <param name="pose.point.y" value="0" />
+    <param name="pose.point.z" value="0" />
+    <param name="pose.orientation.quaternion.x" value="0" />
+    <param name="pose.orientation.quaternion.y" value="0" />
+    <param name="pose.orientation.quaternion.z" value="0" />
+    <param name="pose.orientation.quaternion.w" value="0" />
+    <param name="twist.linear.x" value="0" />
+    <param name="twist.linear.y" value="0" />
+    <param name="twist.linear.z" value="0" />
+    <param name="twist.angular.x" value="0" />
+    <param name="twist.angular.y" value="0" />
+    <param name="twist.angular.z" value="0" />
+    <!-- This Param directly gives initial z-axis, 2-D, angular orientation for Odometry -->
+    <param name="pose.orientation.angular" value="0" />
+</launch>
