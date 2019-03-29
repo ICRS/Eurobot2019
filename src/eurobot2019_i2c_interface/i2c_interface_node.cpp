@@ -55,6 +55,16 @@ int main(int argc, char **argv) {
         ROS ERROR("Failed to get ");
     }
     */
+
+    // Can make this a param?
+    for(int i = 0; i < 36; i++){
+        current_pos.pose.covariance[i] = 0;
+    }
+
+    for(int i = 0; i < 36; i++){
+        current_pos.twist.twist.covariance[i] = 0;
+    }
+
     node_handle.param<double>("pose_point_x", current_pos.pose.pose.position.x, 0);
     node_handle.param<double>("pose_point_y", current_pos.pose.pose.position.y, 0);
     node_handle.param<double>("pose_point_z", current_pos.pose.pose.position.z, 0);
@@ -101,7 +111,7 @@ int main(int argc, char **argv) {
         // Do stuff
         // E.g. some calculations, create messages, read messages etc.
 
-        // Read messages from relavent interfaces
+        // Read messages from relevant interfaces
         // messages to be sent to embed/arduino
         auto grabber_motors_msg = grabber_interface.get_msg();
         auto drop_motors_msg = drop_interface.get_msg();
