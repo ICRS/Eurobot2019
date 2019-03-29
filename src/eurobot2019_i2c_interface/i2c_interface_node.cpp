@@ -9,7 +9,7 @@
 #include "std_msgs/Empty.h"
 #include "geometry_msgs/Twist.h"
 #include "nav_msgs/Odom.h"
-#include "i2c.hpp"
+#include <i2c.hpp>
 #define RADIUS 26.0 //from center of wheel to centre of roller, mm
 
 
@@ -20,10 +20,10 @@
 #include <pigpio>
 #endif
 
-void send_drive_i2c_msg(const std::vector<float>& drive_motor_msg);
+void send_drive_i2c_msg(I2C i2c_drive, const std::vector<float>& drive_motor_msg);
 void get_drive_i2c_msg(const std::vector<float>& drive_motor_msg);
 std::vector<float> twist_to_wheel_vel(geometry_msgs::Twist cmd_vel);
-void wheel_vel_to_odom(std::vector<float32> drive_motor_msg, std::vector<float32> drive_motor_msg);
+void wheel_vel_to_odom(nav_msgs::Odom& current_pos, double& current_angle, const std::vector<float>& drive_motor_msg);
 
 struct Quaterniond{
     double w;
@@ -85,6 +85,9 @@ int main(int argc, char **argv) {
     // initialise this to be zero for everything, (If using Empty messages to test ????)
     // std_msgs::Empty odometry_msg;
 
+    // create i2c_drive to be used in send_drive_i2c_msg() to send along i2c_msg along I2C
+    I2C i2c_drive;
+
     // Main loop
     while(ros::ok()) {
         // Do stuff
@@ -112,7 +115,7 @@ int main(int argc, char **argv) {
 
         // Assume velocities are in a variable called drive_motor_msg
 
-        send_drive_i2c_msg(drive_motor_msg);
+        send_drive_i2c_msg(&i2c_drive, drive_motor_msg);
 
         // messages taken from embed/arduino to be sent to nodes
         drop_interface.set_msg(drop_status_msg);
@@ -185,34 +188,36 @@ void wheel_vel_to_odom(nav_msgs::Odom& current_pos, double& current_angle, const
 
 
 
-void send_drive_i2c_msg(const std::vector<float>& drive_motor_msg){
-  std::string i2c_msg;
+void send_drive_i2c_msg(I2C *i2c_drive, const std::vector<float32>& drive_motor_msg){
+  std::string drive_i2c_msg;
   // save pointer for speed of  in char pointer d
   char *d = &drive_motor_msg[0];
   for(int i = 0; i < 4; i++){
     // dereference every byte of M1 as a char into i2c_msg
-    i2c_msg += *(d++);
+    drive_i2c_msg += *(d++);
   }
 
   char *d = &drive_motor_msg[1];
   for(int i = 0; i < 4; i++){
-    i2c_msg += *(d++);
+    drive_i2c_msg += *(d++);
   }
 
   char *d = &drive_motor_msg[2];
   for(int i = 0; i < 4; i++){
-    i2c_msg += *(d++);
+    drive_i2c_msg += *(d++);
   }
 
   char *d = &drive_motor_msg[3];
   for(int i = 0; i < 4; i++){
-    i2c_msg += *(d++);
+    drive_i2c_msg += *(d++);
   }
+  //Send the converted drive_motor_msg from the interface to a target unknown in DRIVE.
+  i2c_drive->write(DRIVE, drive_i2c_msg);
 
   //i2c_msg is now a string containing characters encoding velocity values (float32)
   // for drive motors in order top left, top right, bottom left, bottom right
 
-  // send i2c_msg along I2C
+  // sends i2c_msg along I2C
 }
 
 void get_drive_i2c_msg(const std::vector<float>& drive_motor_msg){
