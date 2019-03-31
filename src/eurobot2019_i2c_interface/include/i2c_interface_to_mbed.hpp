@@ -28,7 +28,7 @@ public:
         void send_drive_i2c_msg(const geometry_msgs::Twist& cmd_vel_msg);
 
         void get_drive_i2c_msg(std::vector<float>& wheel_vel_msg);
-        
+
         void send_grabber_i2c_msg(const eurobot2019_messages::grabber_motors& grabber_motors_msg);
 
       //void get_grabber_i2c_msg(/*type?*///& grabber_status);

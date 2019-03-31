@@ -1,10 +1,8 @@
 #include "i2c_interface_to_mbed.hpp"
 
-I2C_interface_to_mbed::I2C_interface_to_mbed()
-  ;
+I2C_interface_to_mbed::I2C_interface_to_mbed(){}
 
-  ~I2C_interface_to_mbed::I2C_interface_to_mbed()
-    ;
+  I2C_interface_to_mbed::~I2C_interface_to_mbed(){}
 
     void I2C_interface_to_mbed::send_drive_i2c_msg(const geometry_msgs::Twist& cmd_vel_msg){
       //consider changing to array?
