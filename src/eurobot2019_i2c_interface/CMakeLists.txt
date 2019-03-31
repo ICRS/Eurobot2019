@@ -38,6 +38,7 @@ include_directories(
 add_executable(${PROJECT_NAME}_node
   i2c_interface_node.cpp
   src/i2c.cpp
+  src/i2c_interface_to_mbed.cpp
 )
 
 ## Rename C++ executable without prefix
