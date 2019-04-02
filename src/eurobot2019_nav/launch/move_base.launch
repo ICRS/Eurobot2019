@@ -1,8 +1,7 @@
 <launch>
-    <node pkg="urg_node" type="urg_node" name="hokuyo" output="screen"/>
 
-    <node pkg="eurobot2019_tf" type="node" name="transforms" output="screen"/>
-
+    <master auto="start"/>
+    
     <!-- Run the map server -->
     <node name="map_server" pkg="map_server" type="map_server"/>
 
@@ -22,5 +21,4 @@
         <rosparam file="$(find eurobot2019_nav)/base_local_planner_params.yaml"
                   command="load"/>
     </node>
-
 </launch>
