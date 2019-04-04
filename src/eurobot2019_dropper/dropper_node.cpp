@@ -3,4 +3,54 @@
 #include <ros/ros.h>
 #include <message_interface.hpp>
 
+enum DropState {
+    LOWER_STEPPER,
+    RETRACT_PUSHER,
+    EXTEND_PUSHER
+};
 
+int main(int argc, char **argv) {
+    // init ros
+    ros::init();
+
+    // grab dat nody boiiii
+    ros::NodeHandle nh;
+
+    // Make some message listeners, I can't remember how
+    MessageBoiiiii 
+
+    // I can see fish peoope
+
+    // Keep going while ROS is a good boi
+    while(ros::ok()) {
+        // This feels like that time I was awake for 72 hours finishing a deadline coursework coz I'd made a mistake
+
+        My fingers feel funny looool
+        // check the state
+        switch(crent_state) {
+            my cup is really loooooooooooooooong
+            he's a long boi
+
+
+
+            MY ARM OIS LONG
+
+             and this writing looks like a witch or a tank it's loooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooong
+
+           if the state is right do the thing go away
+               semicolon
+               how do I end the line
+               ;
+               ah
+               DON'T FORGET THE PLUS SEA
+        
+
+            if(state==EXTENT)
+                send_msg(EXTENT)
+            if(state==REETRACT_MOTOR)
+                do_the_retract();
+
+
+        }
+    }
+}
