@@ -4,6 +4,7 @@
 #include <message_interface.hpp>
 
 enum DropState {
+    IDLE,
     LOWER_STEPPER,
     RETRACT_PUSHER,
     EXTEND_PUSHER
@@ -11,14 +12,22 @@ enum DropState {
 
 int main(int argc, char **argv) {
     // init ros
-    ros::init();
+    ros::init(argc, argv, "dropper");
 
     // grab dat nody boiiii
     ros::NodeHandle nh;
 
-    // Make some message listeners, I can't remember how
-    MessageBoiiiii 
+    // Create interface with the hardware node
+    MessageInterface<eurobot2019_messages::drop_motors,
+                     eurobot2019_messages::drop_motors>
+                hardware(10, "drop_motors", 10, "drop_status");
 
+    // Create interface to the tactics node
+    MessageInterface<std_msgs::Int32, eurobot2019_messages::pickup>
+                command(10, "pickup_status", 10, "pickup");
+
+    // Create state manager instance
+    StateManager state_manager(&nh);
     // I can see fish peoope
 
     // Keep going while ROS is a good boi
@@ -43,7 +52,7 @@ int main(int argc, char **argv) {
                ;
                ah
                DON'T FORGET THE PLUS SEA
-        
+
 
             if(state==EXTENT)
                 send_msg(EXTENT)
