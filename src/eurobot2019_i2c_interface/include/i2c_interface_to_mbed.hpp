@@ -33,11 +33,11 @@ public:
 
         void send_grabber_i2c_msg(const eurobot2019_messages::grabber_motors& grabber_motors_msg);
 
-      //void get_grabber_i2c_msg(/*type?*///& grabber_status);
+        void get_grabber_i2c_msg(eurobot2019_messages::grabber_motors& grabber_status_msg);
 
         void send_dropper_i2c_msg(const eurobot2019_messages::drop_motors& drop_motors_msg);
 
-        void get_dropper_i2c_msg(eurobot2019_messages::drop_status& drop_status);
+        void get_dropper_i2c_msg(eurobot2019_messages::drop_status& drop_status_msg);
 
 private:
     // create i2c_handler to be used in handling communication along i2c

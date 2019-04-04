@@ -124,7 +124,7 @@ int main(int argc, char **argv) {
         // Create a message and set the current message to be sent
         // This will continue to be sent until a new message is set
         // Get from I2C, convert from string to usable values
-        eurobot2019_messages::drop_status drop_status_msg;
+        eurobot2019_messages::drop_motors drop_status_msg;
         std_msgs::Empty grabber_status_msg; //should be eurobot2019_messages::grabber_status
         std::vector<float> wheel_vel_msg;
         nav_msgs::Odometry odometry_msg; //convert from wheel speeds to twist + add pose
