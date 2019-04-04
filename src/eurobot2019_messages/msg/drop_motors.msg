@@ -1,3 +1,6 @@
-# Which tower to drop from
-# 1 is left, 2 is middle, 3 is right
-uint8 tower_num
+# The number of pucks in the respective tower
+uint8 tower
+# The z position of the stepper motor
+double32 z
+# The x position of the pusher
+double32 x
