@@ -3,3 +3,4 @@ devel/*
 *.pyc
 
 *.swp
+ frames.*

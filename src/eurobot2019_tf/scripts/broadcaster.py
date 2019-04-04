@@ -6,13 +6,15 @@ import tf_conversions
 
 import tf2_ros
 
+import geometry_msgs
+
 def get_laser_tf():
     lt = geometry_msgs.msg.TransformStamped()
     lt.header.stamp = rospy.Time.now()
 
     # Transform from robot frame to laser scanner frame
-    lt.header.frame_id = "base"
-    lt.child_frame_id = "laser_scanner"
+    lt.header.frame_id = "base_link"
+    lt.child_frame_id = "laser"
 
     lt.transform.translation.x = 0
     lt.transform.translation.y = 0
@@ -30,9 +32,9 @@ def get_odometry_tf():
     ot = geometry_msgs.msg.TransformStamped()
     ot.header.stamp = rospy.Time.now()
 
-    # Transform from robot frame to odometry frame
-    ot.header.frame_id = "base"
-    ot.child_frame_id = "odometry"
+    # Transform from odometry frame to robot_frame
+    ot.header.frame_id = "odom"
+    ot.child_frame_id = "base_link"
 
     ot.transform.translation.x = 0
     ot.transform.translation.y = 0
@@ -50,6 +52,8 @@ def get_odometry_tf():
 if __name__ == '__main__':
     broadcaster = tf2_ros.TransformBroadcaster()
 
+    rospy.init_node("tf_node")
+
     sleeper = rospy.Rate(100)
 
     while not rospy.is_shutdown():
@@ -57,7 +61,7 @@ if __name__ == '__main__':
         broadcaster.sendTransform(get_laser_tf())
 
         # Broadcast the odometry transform
-        broadcaster.sendTransform(get_odometry_rf())
+        broadcaster.sendTransform(get_odometry_tf())
 
         # Maintain frequency
         sleeper.sleep()
