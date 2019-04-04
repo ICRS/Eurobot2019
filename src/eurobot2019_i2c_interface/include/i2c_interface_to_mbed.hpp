@@ -11,6 +11,8 @@
 #include "eurobot2019_messages/grabber_motors.h"
 #include <i2c.hpp>
 
+#include <ros/ros.h>
+
 #ifdef __PC_TEST__
 #include <iostream> // for debugging
 #else

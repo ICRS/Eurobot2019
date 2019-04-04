@@ -81,19 +81,19 @@ int main(int argc, char **argv) {
     node_handle.param<double>("twist_angular_z", current_pos.twist.twist.angular.z, 0);
 
     MessageInterface<eurobot2019_messages::drop_status, eurobot2019_messages::drop_motors>
-                drop_interface(100, "drop_status",
+                drop_interface(1, "drop_status",
                                10 , "drop_motors");
 
     // Create Localisaion interface
     MessageInterface<std_msgs::Empty, eurobot2019_messages::grabber_motors>
-                grabber_interface(100, "grabber_status",
+                grabber_interface(1, "grabber_status",
                                   10 , "grabber_motors");
 
     // check names of channels
     //publisher: nav_msgs/Odometry for Odom
     //subscriber: geometry_msgs/Twist for cmd_vel
     MessageInterface<nav_msgs::Odometry, geometry_msgs::Twist>
-                navigation_interface(100, "odom",
+                navigation_interface(1, "odom",
                                      10 , "cmd_vel");
 
 

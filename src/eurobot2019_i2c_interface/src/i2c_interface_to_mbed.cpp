@@ -9,10 +9,10 @@ I2C_interface_to_mbed::I2C_interface_to_mbed(){}
       std::vector<float> drive_motor_msg;
       // Gives rotations per second (frequency)
       // x +ve is forward, y +ve is left, (need to check if same as navigation stack, if not change appropriately)
-      drive_motor_msg.push_back((cmd_vel_msg.linear.x - cmd_vel_msg.linear.y - 261.236363668644*cmd_vel_msg.angular.z)/RADIUS); //top left
-      drive_motor_msg.push_back((cmd_vel_msg.linear.x + cmd_vel_msg.linear.y + 261.236363668644*cmd_vel_msg.angular.z)/RADIUS); //top right
-      drive_motor_msg.push_back((cmd_vel_msg.linear.x + cmd_vel_msg.linear.y - 187.763636356656*cmd_vel_msg.angular.z)/RADIUS); //bottom left
-      drive_motor_msg.push_back((cmd_vel_msg.linear.x - cmd_vel_msg.linear.y + 187.763636356656*cmd_vel_msg.angular.z)/RADIUS); //bottom right
+      drive_motor_msg.push_back((cmd_vel_msg.linear.x - cmd_vel_msg.linear.y - 261.236363668644*cmd_vel_msg.angular.z)/RADIUS/3.1415926/2); //top left
+      drive_motor_msg.push_back((cmd_vel_msg.linear.x + cmd_vel_msg.linear.y + 261.236363668644*cmd_vel_msg.angular.z)/RADIUS/3.1415926/2); //top right
+      drive_motor_msg.push_back((cmd_vel_msg.linear.x + cmd_vel_msg.linear.y - 187.763636356656*cmd_vel_msg.angular.z)/RADIUS/3.1415926/2); //bottom left
+      drive_motor_msg.push_back((cmd_vel_msg.linear.x - cmd_vel_msg.linear.y + 187.763636356656*cmd_vel_msg.angular.z)/RADIUS/3.1415926/2); //bottom right
 
       std::string drive_i2c_msg;
       // save pointer for speed of  in char pointer d
@@ -27,6 +27,7 @@ I2C_interface_to_mbed::I2C_interface_to_mbed(){}
 
       //Send the converted drive_motor_msg from the interface to a target unknown in DRIVE.
       i2c_handler_.write(DRIVE, drive_i2c_msg);
+      ROS_INFO("Msg：%0.1f, %0.1f, %0.1f, %0.1f", drive_motor_msg[0], drive_motor_msg[1], drive_motor_msg[2], drive_motor_msg[3]);
     }
 
     void I2C_interface_to_mbed::get_drive_i2c_msg(std::vector<float>& wheel_vel_msg){
