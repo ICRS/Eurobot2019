@@ -66,10 +66,14 @@ I2C_interface_to_mbed::I2C_interface_to_mbed(){}
       i2c_handler_.write(GRABBER, grabber_i2c_msg);
     }
 
-      /* void I2C_interface_to_mbed::get_grabber_i2c_msg(/*type?*///& grabber_status) {
-        /* code */
-      //}
-      //*/
+    void I2C_interface_to_mbed::get_grabber_i2c_msg(eurobot2019_messages::grabber_motors& grabber_status_msg) {
+        grabber_i2c_msg = i2c_handler_.read(GRABBER, ?);
+        grabber_status_msg.y_pos_mm=?;
+        grabber_status_msg.open_pos_mm=?;
+        grabber_status_msg.z_twist_rad=?;
+        grabber_status_msg.servo_state=?;
+      }
+      //*Needs help with the code here.../
 
       void I2C_interface_to_mbed::send_dropper_i2c_msg(const eurobot2019_messages::drop_motors& drop_motors_msg) {
         std::string dropper_i2c_msg;
@@ -79,10 +83,9 @@ I2C_interface_to_mbed::I2C_interface_to_mbed(){}
         i2c_handler_.write(DROPPER, dropper_i2c_msg);
       }
 
-      void I2C_interface_to_mbed::get_dropper_i2c_msg(eurobot2019_messages::drop_status& drop_status){
+      void I2C_interface_to_mbed::get_dropper_i2c_msg(eurobot2019_messages::drop_motors& drop_status_msg){
         std::string dropper_i2c_msg;
-        dropper_i2c_msg = i2c_handler_.read(DROPPER, 3); //reads motor values, length assumed to be 16
-        drop_status.left_tower_contents = dropper_i2c_msg[0];
-        drop_status.middle_tower_contents = dropper_i2c_msg[1];
-        drop_status.right_tower_contents = dropper_i2c_msg[2];
+        dropper_i2c_msg = i2c_handler_.read(DROPPER, 1); //reads motor values, length assumed to be 16
+        drop_status_msg.tower_num = dropper_i2c_msg;
+
       }
