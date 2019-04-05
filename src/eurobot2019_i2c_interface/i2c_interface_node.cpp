@@ -13,7 +13,7 @@
 #include "eurobot2019_messages/grabber_motors.h"
 #include <i2c.hpp>
 #include <i2c_interface_to_mbed.hpp>
-#define RADIUS 26.0 //from center of wheel to centre of roller, mm
+#define RADIUS 0.026 //from center of wheel to centre of roller, m
 
 
 // Preprocessor macro to check if we're running on RPi or test pc
