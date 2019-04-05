@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(eurobot2019_pickup_module)
+project(eurobot2019_nav)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
 # add_compile_options(-std=c++11)
@@ -7,7 +7,11 @@ project(eurobot2019_pickup_module)
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
-find_package(catkin REQUIRED)
+find_package(catkin REQUIRED COMPONENTS
+  eurobot2019_tf
+  move_base
+  urg_node
+)
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -100,8 +104,8 @@ find_package(catkin REQUIRED)
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
 #  INCLUDE_DIRS include
-#  LIBRARIES eurobot2019_pickup_module
-#  CATKIN_DEPENDS other_catkin_pkg
+#  LIBRARIES eurobot2019_nav
+#  CATKIN_DEPENDS eurobot2019_tf move_base urg_node
 #  DEPENDS system_lib
 )
 
@@ -113,12 +117,12 @@ catkin_package(
 ## Your package locations should be listed before other locations
 include_directories(
 # include
-# ${catkin_INCLUDE_DIRS}
+  ${catkin_INCLUDE_DIRS}
 )
 
 ## Declare a C++ library
 # add_library(${PROJECT_NAME}
-#   src/${PROJECT_NAME}/eurobot2019_pickup_module.cpp
+#   src/${PROJECT_NAME}/eurobot2019_nav.cpp
 # )
 
 ## Add cmake target dependencies of the library
@@ -129,7 +133,7 @@ include_directories(
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
-# add_executable(${PROJECT_NAME}_node src/eurobot2019_pickup_module_node.cpp)
+# add_executable(${PROJECT_NAME}_node src/eurobot2019_nav_node.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -174,19 +178,19 @@ include_directories(
 #   PATTERN ".svn" EXCLUDE
 # )
 
-## Mark other files for installation (e.g. launch and bag files, etc.)
-# install(FILES
-#   # myfile1
-#   # myfile2
-#   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
-# )
+# Mark other files for installation (e.g. launch and bag files, etc.)
+install(FILES
+  maps/eurobot_map.png
+  FILES_MATCHING PATTERN "*.yaml"
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
+)
 
 #############
 ## Testing ##
 #############
 
 ## Add gtest based cpp test target and link libraries
-# catkin_add_gtest(${PROJECT_NAME}-test test/test_eurobot2019_pickup_module.cpp)
+# catkin_add_gtest(${PROJECT_NAME}-test test/test_eurobot2019_nav.cpp)
 # if(TARGET ${PROJECT_NAME}-test)
 #   target_link_libraries(${PROJECT_NAME}-test ${PROJECT_NAME})
 # endif()
