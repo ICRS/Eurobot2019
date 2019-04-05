@@ -1,3 +1,12 @@
-# Which tower to drop from
-# 1 is left, 2 is middle, 3 is right
-uint8 tower_num
+# The z position of the left stepper motor
+float32 left_z
+# The x position of the left pusher
+float32 left_x
+# The z position of the middle stepper motor
+float32 middle_z
+# The x position of the middle pusher
+float32 middle_x
+# The z position of the right stepper motor
+float32 right_z
+# The x position of the right pusher
+float32 right_x
