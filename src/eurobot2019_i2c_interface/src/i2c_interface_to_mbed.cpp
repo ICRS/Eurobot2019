@@ -27,7 +27,7 @@ I2C_interface_to_mbed::I2C_interface_to_mbed(){}
 
       //Send the converted drive_motor_msg from the interface to a target unknown in DRIVE.
       i2c_handler_.write(DRIVE, drive_i2c_msg);
-      ROS_INFO("Msg：%0.1f, %0.1f, %0.1f, %0.1f", drive_motor_msg[0], drive_motor_msg[1], drive_motor_msg[2], drive_motor_msg[3]);
+      ROS_INFO("Msg：%hi, %hi, %hi, %hi", drive_motor_msg[0], drive_motor_msg[1], drive_motor_msg[2], drive_motor_msg[3]);
     }
 
     void I2C_interface_to_mbed::get_drive_i2c_msg(std::vector<float>& wheel_vel_msg){
@@ -40,6 +40,12 @@ I2C_interface_to_mbed::I2C_interface_to_mbed(){}
         for(int i = 0; i < 4; i++){
             wheel_vel_msg.push_back((float) *(tmp++)/100.f);
         }
+        /* test
+        wheel_vel_msg.push_back(6.12);
+        wheel_vel_msg.push_back(6.12);
+        wheel_vel_msg.push_back(6.12);
+        wheel_vel_msg.push_back(6.12);
+        */
     }
 
     void I2C_interface_to_mbed::send_grabber_i2c_msg(const eurobot2019_messages::grabber_motors& grabber_motors_msg){

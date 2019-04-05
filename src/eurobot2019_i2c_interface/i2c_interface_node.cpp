@@ -98,7 +98,7 @@ int main(int argc, char **argv) {
 
 
     // Control loop rate to be 100 Hz
-    ros::Rate loop_rate(1);
+    ros::Rate loop_rate(100);
 
     int count = 0;
 
@@ -170,14 +170,16 @@ void wheel_vel_to_odom(nav_msgs::Odometry& current_pos, double& current_angle, c
     std::chrono::duration<double> time_span = std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1);
     std::chrono::high_resolution_clock::time_point t1 = std::chrono::high_resolution_clock::now();
 
-    double linear_x = (wheel_vel_msg[0] + wheel_vel_msg[1] + wheel_vel_msg[2] + wheel_vel_msg[3])*(RADIUS/4.0)*3.1415926;
-    double linear_y = (-wheel_vel_msg[0] + wheel_vel_msg[1] + wheel_vel_msg[2] - wheel_vel_msg[3])*(RADIUS/4.0)*3.1415926;
-    double angular_z = (-4.127890003*wheel_vel_msg[0] + 4.127890003*wheel_vel_msg[1] -4.83686361*wheel_vel_msg[2] + 4.83686361*wheel_vel_msg[3])*(RADIUS/4.0);
+    double linear_x = (wheel_vel_msg[0] + wheel_vel_msg[1] + wheel_vel_msg[2] + wheel_vel_msg[3])*(RADIUS/4.0)*6.2831852;
+    double linear_y = (-wheel_vel_msg[0] + wheel_vel_msg[1] + wheel_vel_msg[2] - wheel_vel_msg[3])*(RADIUS/4.0)*6.2831852;
+    double angular_z = (-4.127890003*wheel_vel_msg[0] + 4.127890003*wheel_vel_msg[1] -4.83686361*wheel_vel_msg[2] + 4.83686361*wheel_vel_msg[3])*(RADIUS/4.0)*6.2831852;
 
     double dt = time_span.count();
     double delta_x = (linear_x * cos(current_angle) - linear_y * sin(current_angle)) * dt;
     double delta_y = (linear_x * sin(current_angle) + linear_y * cos(current_angle)) * dt;
     double delta_th = angular_z * dt;
+
+    ROS_INFO("Msg：%0.1f, %0.1f, %0.1f", linear_x, linear_y, angular_z);
 
     Quaterniond q;
     q = toQuaternion(angular_z, 0, 0);
