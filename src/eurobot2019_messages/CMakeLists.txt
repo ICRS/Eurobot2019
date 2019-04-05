@@ -11,7 +11,6 @@ find_package(catkin REQUIRED COMPONENTS
 # Generate messages in the 'msg' folder
 add_message_files(
   FILES
-  drop_status.msg
   drop_motors.msg
   grabber_motors.msg
 )

@@ -6,7 +6,6 @@
 #include "std_msgs/Empty.h"
 #include "geometry_msgs/Twist.h"
 #include "nav_msgs/Odometry.h"
-#include "eurobot2019_messages/drop_status.h"
 #include "eurobot2019_messages/drop_motors.h"
 #include "eurobot2019_messages/grabber_motors.h"
 #include <i2c.hpp>
@@ -37,7 +36,7 @@ public:
 
         void send_dropper_i2c_msg(const eurobot2019_messages::drop_motors& drop_motors_msg);
 
-        void get_dropper_i2c_msg(eurobot2019_messages::drop_status& drop_status_msg);
+        void get_dropper_i2c_msg(eurobot2019_messages::drop_motors& drop_status_msg);
 
 private:
     // create i2c_handler to be used in handling communication along i2c

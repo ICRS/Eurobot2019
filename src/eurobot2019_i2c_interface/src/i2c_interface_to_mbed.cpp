@@ -6,20 +6,20 @@ I2C_interface_to_mbed::I2C_interface_to_mbed(){}
 
     void I2C_interface_to_mbed::send_drive_i2c_msg(const geometry_msgs::Twist& cmd_vel_msg){
       //consider changing to array?
-      std::vector<float> drive_motor_msg;
+      std::vector<short> drive_motor_msg;
       // Gives rotations per second (frequency)
       // x +ve is forward, y +ve is left, (need to check if same as navigation stack, if not change appropriately)
-      drive_motor_msg.push_back((cmd_vel_msg.linear.x - cmd_vel_msg.linear.y - 261.236363668644*cmd_vel_msg.angular.z)/RADIUS/3.1415926/2); //top left
-      drive_motor_msg.push_back((cmd_vel_msg.linear.x + cmd_vel_msg.linear.y + 261.236363668644*cmd_vel_msg.angular.z)/RADIUS/3.1415926/2); //top right
-      drive_motor_msg.push_back((cmd_vel_msg.linear.x + cmd_vel_msg.linear.y - 187.763636356656*cmd_vel_msg.angular.z)/RADIUS/3.1415926/2); //bottom left
-      drive_motor_msg.push_back((cmd_vel_msg.linear.x - cmd_vel_msg.linear.y + 187.763636356656*cmd_vel_msg.angular.z)/RADIUS/3.1415926/2); //bottom right
+      drive_motor_msg.push_back(((cmd_vel_msg.linear.x - cmd_vel_msg.linear.y - 261.236363668644*cmd_vel_msg.angular.z)*100)/RADIUS/3.1415926/2); //top left, *100, needed when converting to shorts (keep 2 dp)
+      drive_motor_msg.push_back(((cmd_vel_msg.linear.x + cmd_vel_msg.linear.y + 261.236363668644*cmd_vel_msg.angular.z)*100)/RADIUS/3.1415926/2); //top right
+      drive_motor_msg.push_back(((cmd_vel_msg.linear.x + cmd_vel_msg.linear.y - 187.763636356656*cmd_vel_msg.angular.z)*100)/RADIUS/3.1415926/2); //bottom left
+      drive_motor_msg.push_back(((cmd_vel_msg.linear.x - cmd_vel_msg.linear.y + 187.763636356656*cmd_vel_msg.angular.z)*100)/RADIUS/3.1415926/2); //bottom right
 
       std::string drive_i2c_msg;
       // save pointer for speed of  in char pointer d
       char *d;
       for(int j = 0; j < 4; j++){
         d = (char*)&(drive_motor_msg[j]);
-        for(int i = 0; i < 4; i++){
+        for(int i = 0; i < 2; i++){
           // dereference every byte of a wheel_vel as a char into drive_i2c_msg
           drive_i2c_msg += *(d++);
         }
@@ -32,31 +32,31 @@ I2C_interface_to_mbed::I2C_interface_to_mbed(){}
 
     void I2C_interface_to_mbed::get_drive_i2c_msg(std::vector<float>& wheel_vel_msg){
         std::string wheel_vel_i2c_msg;
-        wheel_vel_i2c_msg = i2c_handler_.read(DRIVE, 16); //reads motor values, length assumed to be 16
-        char str[16];
+        wheel_vel_i2c_msg = i2c_handler_.read(DRIVE, 8); //reads motor values, length assumed to be 16
+        char str[8];
         sprintf(str, "%s", wheel_vel_i2c_msg.c_str());
-        float* tmp = (float*)str;
+        short* tmp = (short*)str;
 
         for(int i = 0; i < 4; i++){
-            wheel_vel_msg.push_back(*(tmp++));
+            wheel_vel_msg.push_back((float) *(tmp++)/100.f);
         }
     }
 
     void I2C_interface_to_mbed::send_grabber_i2c_msg(const eurobot2019_messages::grabber_motors& grabber_motors_msg){
       //consider changing to array?
-      std::vector<float> grabber_vector;
+      std::vector<short> grabber_vector;
       // Gives grabber values (pos, servo_state, e.t.c)
       // 3 floats and a bool
-      grabber_vector.push_back(grabber_motors_msg.y_pos_mm);
-      grabber_vector.push_back(grabber_motors_msg.open_pos_mm);
-      grabber_vector.push_back(grabber_motors_msg.z_twist_rad);
+      grabber_vector.push_back(grabber_motors_msg.z_pos_mm * 100);
+      grabber_vector.push_back(grabber_motors_msg.open_pos_mm * 100);
+      grabber_vector.push_back(grabber_motors_msg.z_twist_rad * 100);
       grabber_vector.push_back(grabber_motors_msg.servo_state);
       std::string grabber_i2c_msg;
       // save pointer for eurobot2019_messages/grabber_motors elements in char pointer d
       char *d;
       for(int j = 0; j < 4; j++){
         d = (char*)&(grabber_vector[j]);
-        for(int i = 0; i < 4; i++){
+        for(int i = 0; i < 2; i++){
           // dereference every byte of element as a char into grabber_i2c_msg
           grabber_i2c_msg += *(d++);
         }
@@ -67,25 +67,58 @@ I2C_interface_to_mbed::I2C_interface_to_mbed(){}
     }
 
     void I2C_interface_to_mbed::get_grabber_i2c_msg(eurobot2019_messages::grabber_motors& grabber_status_msg) {
-        grabber_i2c_msg = i2c_handler_.read(GRABBER, ?);
-        grabber_status_msg.y_pos_mm=?;
-        grabber_status_msg.open_pos_mm=?;
-        grabber_status_msg.z_twist_rad=?;
-        grabber_status_msg.servo_state=?;
+        std::string grabber_motors_i2c_msg;
+        grabber_motors_i2c_msg = i2c_handler_.read(DRIVE, 7); //reads motor values, length assumed to be 7
+        char str[7];
+        sprintf(str, "%s", grabber_motors_i2c_msg.c_str());
+        short* tmp = (short*)str;
+
+        grabber_status_msg.z_pos_mm = (float) *(tmp++)/100.f;
+        grabber_status_msg.open_pos_mm = (float) *(tmp++)/100.f;
+        grabber_status_msg.z_twist_rad = (float) *(tmp++)/100.f;
+
+        char* tmp_bool = (char*)tmp;
+
+        grabber_status_msg.servo_state = (bool) *(tmp_bool);
       }
-      //*Needs help with the code here.../
 
       void I2C_interface_to_mbed::send_dropper_i2c_msg(const eurobot2019_messages::drop_motors& drop_motors_msg) {
-        std::string dropper_i2c_msg;
-        char* d = (char*)&drop_motors_msg.tower_num;
-        dropper_i2c_msg += *(d);
-        //Send the converted drop_motors_msg from the interface to a target unknown in DROPPER.
-        i2c_handler_.write(DROPPER, dropper_i2c_msg);
+          //consider changing to array?
+          std::vector<short> dropper_vector;
+          // Gives dropper values (left_x (position of pusher), left_z (position of stepper, i.e. atom platform), e.t.c)
+          // 3 floats and a bool
+          dropper_vector.push_back(drop_motors_msg.left_z * 100);
+          dropper_vector.push_back(drop_motors_msg.left_x * 100);
+          dropper_vector.push_back(drop_motors_msg.right_z * 100);
+          dropper_vector.push_back(drop_motors_msg.right_x * 100);
+          dropper_vector.push_back(drop_motors_msg.middle_z * 100);
+          dropper_vector.push_back(drop_motors_msg.middle_x * 100);
+          std::string dropper_i2c_msg;
+          // save pointer for eurobot2019_messages/drop_motors elements in char pointer d
+          char *d;
+          for(int j = 0; j < 6; j++){
+            d = (char*)&(dropper_vector[j]);
+            for(int i = 0; i < 2; i++){
+              // dereference every byte of element as a char into dropper_i2c_msg
+              dropper_i2c_msg += *(d++);
+            }
+          }
+
+          //Send the converted drop_motors_msg from the interface to a target unknown in DROPPER.
+          i2c_handler_.write(DROPPER, dropper_i2c_msg);
       }
 
       void I2C_interface_to_mbed::get_dropper_i2c_msg(eurobot2019_messages::drop_motors& drop_status_msg){
-        std::string dropper_i2c_msg;
-        dropper_i2c_msg = i2c_handler_.read(DROPPER, 1); //reads motor values, length assumed to be 16
-        drop_status_msg.tower_num = dropper_i2c_msg;
+          std::string dropper_status_i2c_msg;
+          dropper_status_i2c_msg = i2c_handler_.read(DRIVE, 12); //reads motor values, length assumed to be 7
+          char str[12];
+          sprintf(str, "%s", dropper_status_i2c_msg.c_str());
+          short* tmp = (short*)str;
 
+          drop_status_msg.left_z = (float) *(tmp++)/100.f;
+          drop_status_msg.left_x = (float) *(tmp++)/100.f;
+          drop_status_msg.right_z = (float) *(tmp++)/100.f;
+          drop_status_msg.right_x = (float) *(tmp++)/100.f;
+          drop_status_msg.middle_z = (float) *(tmp++)/100.f;
+          drop_status_msg.middle_x = (float) *(tmp++)/100.f;
       }

@@ -9,7 +9,6 @@
 #include "std_msgs/Empty.h"
 #include "geometry_msgs/Twist.h"
 #include "nav_msgs/Odometry.h"
-#include "eurobot2019_messages/drop_status.h"
 #include "eurobot2019_messages/drop_motors.h"
 #include "eurobot2019_messages/grabber_motors.h"
 #include <i2c.hpp>
@@ -80,12 +79,12 @@ int main(int argc, char **argv) {
     node_handle.param<double>("twist_angular_y", current_pos.twist.twist.angular.y, 0);
     node_handle.param<double>("twist_angular_z", current_pos.twist.twist.angular.z, 0);
 
-    MessageInterface<eurobot2019_messages::drop_status, eurobot2019_messages::drop_motors>
+    MessageInterface<eurobot2019_messages::drop_motors, eurobot2019_messages::drop_motors>
                 drop_interface(1, "drop_status",
                                10 , "drop_motors");
 
     // Create Localisaion interface
-    MessageInterface<std_msgs::Empty, eurobot2019_messages::grabber_motors>
+    MessageInterface<eurobot2019_messages::grabber_motors, eurobot2019_messages::grabber_motors>
                 grabber_interface(1, "grabber_status",
                                   10 , "grabber_motors");
 
@@ -125,7 +124,7 @@ int main(int argc, char **argv) {
         // This will continue to be sent until a new message is set
         // Get from I2C, convert from string to usable values
         eurobot2019_messages::drop_motors drop_status_msg;
-        std_msgs::Empty grabber_status_msg; //should be eurobot2019_messages::grabber_status
+        eurobot2019_messages::grabber_motors grabber_status_msg;
         std::vector<float> wheel_vel_msg;
         nav_msgs::Odometry odometry_msg; //convert from wheel speeds to twist + add pose
 
@@ -171,8 +170,8 @@ void wheel_vel_to_odom(nav_msgs::Odometry& current_pos, double& current_angle, c
     std::chrono::duration<double> time_span = std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1);
     std::chrono::high_resolution_clock::time_point t1 = std::chrono::high_resolution_clock::now();
 
-    double linear_x = (wheel_vel_msg[0] + wheel_vel_msg[1] + wheel_vel_msg[2] + wheel_vel_msg[3])*(RADIUS/4.0);
-    double linear_y = (-wheel_vel_msg[0] + wheel_vel_msg[1] + wheel_vel_msg[2] - wheel_vel_msg[3])*(RADIUS/4.0);
+    double linear_x = (wheel_vel_msg[0] + wheel_vel_msg[1] + wheel_vel_msg[2] + wheel_vel_msg[3])*(RADIUS/4.0)*3.1415926;
+    double linear_y = (-wheel_vel_msg[0] + wheel_vel_msg[1] + wheel_vel_msg[2] - wheel_vel_msg[3])*(RADIUS/4.0)*3.1415926;
     double angular_z = (-0.003827951*wheel_vel_msg[0] + 0.003827951*wheel_vel_msg[1] - 0.005325845*wheel_vel_msg[2] + 0.005325845*wheel_vel_msg[3])*(RADIUS/4.0);
 
     double dt = time_span.count();
