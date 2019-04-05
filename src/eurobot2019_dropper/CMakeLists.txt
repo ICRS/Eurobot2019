@@ -7,7 +7,10 @@ add_compile_options(-std=c++11)
 # Find catkin macros and libraries
 # if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 # is used, also find other catkin packages
-find_package(catkin REQUIRED)
+find_package(catkin REQUIRED
+    roscpp
+    eurobot2019_messages
+)
 
 catkin_package(
   INCLUDE_DIRS include
@@ -24,7 +27,10 @@ include_directories(
 )
 
 # Declare a C++ executable
-add_executable(${PROJECT_NAME}_node src/drop_node.cpp)
+add_executable(${PROJECT_NAME}_node
+    dropper_node.cpp
+    src/state_manager.cpp
+)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the

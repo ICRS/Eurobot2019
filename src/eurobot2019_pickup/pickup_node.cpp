@@ -163,6 +163,7 @@ int main(int argc, char **argv) {
         }
 
         hardware.set_msg(motor_msg);
+        command.set_msg(pickup_status_msg);
 
         // Maintain 100 Hz
         sleeper.sleep();

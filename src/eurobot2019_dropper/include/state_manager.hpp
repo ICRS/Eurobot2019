@@ -3,16 +3,24 @@
 
 #include <ros/ros.h>
 #include <eurobot2019_messages/drop_motors.h>
-#include <eurobot2019_messages/drop_status.h>
+#include <eurobot2019_messages/drop_command.h>
 #include <map>
 
 #include "message_interface.hpp"
 
 enum DropState {
-    IDLE,
-    LOWER_STEPPER,
-    RETRACT_PUSHER,
-    EXTEND_PUSHER
+    IDLE_L,
+    LOWER_STEPPER_L,
+    RETRACT_PUSHER_L,
+    EXTEND_PUSHER_L,
+    IDLE_R,
+    LOWER_STEPPER_R,
+    RETRACT_PUSHER_R,
+    EXTEND_PUSHER_R,
+    IDLE_M,
+    LOWER_STEPPER_M,
+    RETRACT_PUSHER_M,
+    EXTEND_PUSHER_M
 };
 
 class StateManager {
