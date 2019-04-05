@@ -20,8 +20,11 @@ I2C::~I2C() {
 
 void I2C::write(I2CMessageType target, std::string message) {
 #ifdef __PC_TEST__
-    std::cout << "Writing \033[33m" << message 
-              << "\033[0m to " << target << std::endl;
+    std::cout << "Writing \033[33m"<< "\033[0m to ";
+    for(short i = 0; i < message.size()-1; i+=2) {
+        std::cout << ((short)message[i] < 8 + (short)message[i+1]) << " ";
+    }
+    std::cout << target << std::endl;
 #else
     i2cWriteDevice(handles_[target], message.c_str(), message.size());
 #endif // __PC_TEST__

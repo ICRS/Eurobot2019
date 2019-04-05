@@ -98,7 +98,7 @@ int main(int argc, char **argv) {
 
 
     // Control loop rate to be 100 Hz
-    ros::Rate loop_rate(100);
+    ros::Rate loop_rate(1);
 
     int count = 0;
 
