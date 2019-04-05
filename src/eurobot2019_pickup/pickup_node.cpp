@@ -47,8 +47,8 @@ int main(int argc, char **argv) {
     // Create a queue to manage the state order
     std::queue<GrabberStates> state_queue;
     state_queue.push(IDLE_BACK);
-    
-    // Stack is size 1 so set the msg
+
+    // Queue is size 1 so set the msg
     pickup_status_msg.data = 1;
     command.set_msg(pickup_status_msg);
 
@@ -71,7 +71,7 @@ int main(int argc, char **argv) {
             // Idle command means don't pick up a puck at the moment
             if(command_msg.colour == 0) {
                 state_queue.push(OPENING);
-                state_queue.push(IDLE_OUT);                
+                state_queue.push(IDLE_OUT);
             }
             else if(command_msg.colour == 5) {
                 state_queue.push(OPENING);
@@ -90,7 +90,7 @@ int main(int argc, char **argv) {
                 }
                 if(command_msg.pos_reached) {
                     /* We've already added the correct z pos, we now:
-                     * 
+                     *
                      * 1. Close grabber
                      * 2. Rotate if necessary
                      * 3. Move to colour location
@@ -127,8 +127,8 @@ int main(int argc, char **argv) {
         auto grabber_pos = hardware.get_msg();
         // If the current twist is non zero
         // And current z is not at the target, set twist to 0
-        if(grabber_pos.z_twist_rad > 1e-2 && 
-           !approx_equal(target_msg.z_pos_mm, 
+        if(grabber_pos.z_twist_rad > 1e-2 &&
+           !approx_equal(target_msg.z_pos_mm,
                          grabber_pos.z_pos_mm)) {
             motor_msg.z_twist_rad = 0;
         }
@@ -163,6 +163,7 @@ int main(int argc, char **argv) {
         }
 
         hardware.set_msg(motor_msg);
+        command.set_msg(pickup_status_msg);
 
         // Maintain 100 Hz
         sleeper.sleep();
