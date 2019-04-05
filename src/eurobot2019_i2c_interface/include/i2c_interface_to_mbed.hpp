@@ -18,7 +18,7 @@
 #include <pigpio>
 #endif // __PC_TEST__
 
-#define RADIUS 26.0 //from center of wheel to centre of roller, mm
+#define RADIUS 0.026 //from center of wheel to centre of roller, m
 
 //I2C Class creation?
 class I2C_interface_to_mbed {
