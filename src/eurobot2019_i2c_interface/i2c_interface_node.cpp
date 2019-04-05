@@ -172,7 +172,7 @@ void wheel_vel_to_odom(nav_msgs::Odometry& current_pos, double& current_angle, c
 
     double linear_x = (wheel_vel_msg[0] + wheel_vel_msg[1] + wheel_vel_msg[2] + wheel_vel_msg[3])*(RADIUS/4.0)*3.1415926;
     double linear_y = (-wheel_vel_msg[0] + wheel_vel_msg[1] + wheel_vel_msg[2] - wheel_vel_msg[3])*(RADIUS/4.0)*3.1415926;
-    double angular_z = (-0.003827951*wheel_vel_msg[0] + 0.003827951*wheel_vel_msg[1] - 0.005325845*wheel_vel_msg[2] + 0.005325845*wheel_vel_msg[3])*(RADIUS/4.0);
+    double angular_z = (-4.127890003*wheel_vel_msg[0] + 4.127890003*wheel_vel_msg[1] -4.83686361*wheel_vel_msg[2] + 4.83686361*wheel_vel_msg[3])*(RADIUS/4.0);
 
     double dt = time_span.count();
     double delta_x = (linear_x * cos(current_angle) - linear_y * sin(current_angle)) * dt;
