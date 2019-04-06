@@ -45,7 +45,7 @@ std::cout << "declared drop_right" << std::endl;
 std::cout << "declared drop_middle" << std::endl;
     // Create state manager instance
     StateManager state_manager(&nh);
-
+std::cout << "declared state_manager" << std::endl;
     // Message to be published, and the final target
     eurobot2019_messages::drop_motors motor_msg, target_msg;
 
@@ -94,7 +94,7 @@ std::cout << "declared drop_middle" << std::endl;
             old_command_msg = command_msg;
 
             // Idle command means don't pick up a puck at the moment
-            if(command_msg.left == 0) {
+            if(command_msg.left == false) {
                 state_queue_left.push(IDLE_L);
             }
 
@@ -104,7 +104,7 @@ std::cout << "declared drop_middle" << std::endl;
                     state_queue_left.push(EXTEND_PUSHER_L);
                  }
 
-           if(command_msg.right == 0) {
+           if(command_msg.right == false) {
                  state_queue_right.push(IDLE_R);
            }
 
@@ -114,7 +114,7 @@ std::cout << "declared drop_middle" << std::endl;
                     state_queue_right.push(EXTEND_PUSHER_R);
                 }
 
-           if(command_msg.middle == 0) {
+           if(command_msg.middle == false) {
                   state_queue_middle.push(IDLE_M);
            }
 
@@ -202,7 +202,7 @@ std::cout << "declared drop_middle" << std::endl;
                }
            }
 
-           // set messages to hardware (command stepper and pusher) and tactics (number of states left in queue for every tower)
+           // send messages to hardware (command stepper and pusher) and tactics (number of states left in queue for every tower)
            hardware.set_msg(motor_msg);
            drop_status_left.set_msg(drop_status_left_msg);
            drop_status_right.set_msg(drop_status_right_msg);

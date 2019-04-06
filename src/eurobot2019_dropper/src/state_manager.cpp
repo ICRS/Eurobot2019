@@ -15,7 +15,7 @@ StateManager::StateManager(ros::NodeHandle *nh) {
     motor_targets_[LOWER_STEPPER_M] = m;
     motor_targets_[RETRACT_PUSHER_M] = m;
     motor_targets_[EXTEND_PUSHER_M] = m;
-
+std::cout << "set up map" << std::endl;
     if(!nh->getParam("drop/idle_left_z",
                      motor_targets_[IDLE_L].left_z)) {
         ROS_ERROR("Failed to get param 'drop/idle_left_z'");
@@ -112,6 +112,8 @@ StateManager::StateManager(ros::NodeHandle *nh) {
                      motor_targets_[EXTEND_PUSHER_R].right_x)) {
         ROS_ERROR("Failed to get param 'drop/extend_pusher_right_x'");
     }
+
+    std::cout << "got all params" << std::endl;
 }
 
 eurobot2019_messages::drop_motors
