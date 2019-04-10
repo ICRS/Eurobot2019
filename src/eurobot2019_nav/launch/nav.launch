@@ -1,4 +1,7 @@
 <launch>
+
+    <arg name="map_file" default="$(find eurobot2019_nav)/map_params_icrs.yaml"/>
+
     <node pkg="urg_node" type="urg_node" name="hokuyo" output="screen">
         <param name="ip_address" value=""/>
         <param name="serial_port" value="/dev/ttyACM0"/>
@@ -15,7 +18,7 @@
 
     <!-- Run the map server -->
     <node name="map_server" pkg="map_server" type="map_server" 
-          args="$(find eurobot2019_nav)/map_params.yaml"/>
+          args="$(arg map_file)"/>
 
     <!-- Run AMCL -->
     <include file="$(find eurobot2019_nav)/launch/amcl.launch"/>
@@ -35,4 +38,11 @@
                   command="load"/>
     </node>
 
+    <!-- Run RVIZ -->
+    <arg name="rviz" default="false"/>
+
+    <group if="$(arg rviz)">
+        <node name="visualisation" pkg="rviz" type="rviz" args="-d $(find eurobot2019_nav)/data/eurobot2019.rviz"/>
+    </group>
+    
 </launch>
