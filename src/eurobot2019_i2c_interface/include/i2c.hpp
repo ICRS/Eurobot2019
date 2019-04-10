@@ -3,14 +3,13 @@
 
 #include <map>
 #include <string>
+#include <string.h>
 
-#define __PC_TEST__
-
-#ifdef __PC_TEST__
+#ifndef __arm__
 #include <iostream> // for debugging
 #else
-#include <pigpio>
-#endif // __PC_TEST__
+#include <pigpio.h>
+#endif // __arm__
 
 #define I2C_BUS 1
 

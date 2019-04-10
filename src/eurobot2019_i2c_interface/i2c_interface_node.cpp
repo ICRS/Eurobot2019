@@ -1,5 +1,3 @@
-#define __PC_TEST__
-
 #include <ros/ros.h>
 
 #include "message_interface.hpp"
@@ -17,10 +15,10 @@
 
 
 // Preprocessor macro to check if we're running on RPi or test pc
-#ifdef __PC_TEST__
+#ifndef __arm__
 #include <iostream> // For debugging
 #else
-#include <pigpio>
+#include <pigpio.h>
 #endif
 
 struct Quaterniond{
@@ -150,9 +148,9 @@ int main(int argc, char **argv) {
         //auto cmd_vel_msg = navigation_interface.get_msg();
 
 
-        i2c_interface.send_grabber_i2c_msg(grabber_motors_msg);
-        i2c_interface.send_dropper_i2c_msg(drop_motors_msg);
-        i2c_interface.send_drive_i2c_msg(cmd_vel_msg);
+        //i2c_interface.send_grabber_i2c_msg(grabber_motors_msg);
+        //i2c_interface.send_dropper_i2c_msg(drop_motors_msg);
+        //i2c_interface.send_drive_i2c_msg(cmd_vel_msg);
 
         // Create a message and set the current message to be sent
         // This will continue to be sent until a new message is set
@@ -162,7 +160,7 @@ int main(int argc, char **argv) {
         std::vector<float> wheel_vel_msg;
         nav_msgs::Odometry odometry_msg; //convert from wheel speeds to twist + add pose
 
-        i2c_interface.get_dropper_i2c_msg(drop_status_msg);
+        //i2c_interface.get_dropper_i2c_msg(drop_status_msg);
         i2c_interface.get_drive_i2c_msg(wheel_vel_msg);
         wheel_vel_to_odom(current_pos, current_angle, wheel_vel_msg);
         odometry_msg = current_pos;
@@ -213,7 +211,7 @@ void wheel_vel_to_odom(nav_msgs::Odometry& current_pos, double& current_angle, c
     double delta_y = (linear_x * sin(current_angle) + linear_y * cos(current_angle)) * dt;
     double delta_th = angular_z * dt;
 
-    ROS_INFO("linear + angular vels：%0.1f, %0.1f, %0.1f", linear_x, linear_y, angular_z);
+    ROS_INFO("linear + angular vels: %0.1f, %0.1f, %0.1f", linear_x, linear_y, angular_z);
 
     Quaterniond q;
     q = toQuaternion(angular_z, 0, 0);

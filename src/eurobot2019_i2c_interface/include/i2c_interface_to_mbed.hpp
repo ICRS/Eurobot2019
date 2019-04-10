@@ -12,11 +12,11 @@
 
 #include <ros/ros.h>
 
-#ifdef __PC_TEST__
+#ifndef __arm__
 #include <iostream> // for debugging
 #else
-#include <pigpio>
-#endif // __PC_TEST__
+#include <pigpio.h>
+#endif // __arm__
 
 #define RADIUS 0.026 //from center of wheel to centre of roller, m
 

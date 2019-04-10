@@ -1,9 +1,10 @@
 #include "i2c.hpp"
 
 I2C::I2C() {
-#ifdef __PC_TEST__
+#ifndef __arm__
     std::cout << "Not tessing up i2c as running on PC." << std::endl;
 #else
+    gpioInitialise();
     handles_[I2CMessageType::DRIVE] = i2cOpen(I2C_BUS, DRIVE_ADDR, 0);
     handles_[I2CMessageType::GRABBER] = i2cOpen(I2C_BUS, GRABBER_ADDR, 0);
     handles_[I2CMessageType::DROPPER] = i2cOpen(I2C_BUS, DROPPER_ADDR, 0);
@@ -11,27 +12,28 @@ I2C::I2C() {
 }
 
 I2C::~I2C() {
-#ifndef __PC_TEST__
+#ifdef __arm__
     i2cClose(handles_[I2CMessageType::DRIVE]);
     i2cClose(handles_[I2CMessageType::GRABBER]);
     i2cClose(handles_[I2CMessageType::DROPPER]);
+    gpioTerminate();
 #endif // __PC_TEST__
 }
 
 void I2C::write(I2CMessageType target, std::string message) {
-#ifdef __PC_TEST__
+#ifndef __arm__
     std::cout << "Writing \033[33m"<< "\033[0m to ";
     for(short i = 0; i < message.size()-1; i+=2) {
         std::cout << ((short)message[i] < 8 + (short)message[i+1]) << " ";
     }
     std::cout << target << std::endl;
 #else
-    i2cWriteDevice(handles_[target], message.c_str(), message.size());
+    i2cWriteDevice(handles_[target], (char*) message.c_str(), message.size());
 #endif // __PC_TEST__
 }
 
 std::string I2C::read(I2CMessageType target, unsigned short len) {
-#ifdef __PC_TEST__
+#ifndef __arm__
     std::cout << "Returning empty data from " << target << std::endl;
     return "";
 #else

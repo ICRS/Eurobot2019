@@ -27,7 +27,7 @@ I2C_interface_to_mbed::I2C_interface_to_mbed(){}
 
       //Send the converted drive_motor_msg from the interface to a target unknown in DRIVE.
       i2c_handler_.write(DRIVE, drive_i2c_msg);
-      ROS_INFO("driveMsg：%hi, %hi, %hi, %hi", drive_motor_msg[0], drive_motor_msg[1], drive_motor_msg[2], drive_motor_msg[3]);
+      ROS_INFO("driveMsg: %hi, %hi, %hi, %hi", drive_motor_msg[0], drive_motor_msg[1], drive_motor_msg[2], drive_motor_msg[3]);
     }
 
     void I2C_interface_to_mbed::get_drive_i2c_msg(std::vector<float>& wheel_vel_msg){
@@ -37,6 +37,7 @@ I2C_interface_to_mbed::I2C_interface_to_mbed(){}
         sprintf(str, "%s", wheel_vel_i2c_msg.c_str());
         short* tmp = (short*)str;
 
+        wheel_vel_msg.clear();
         for(int i = 0; i < 4; i++){
             wheel_vel_msg.push_back((float) *(tmp++)/100.f);
         }
@@ -46,7 +47,7 @@ I2C_interface_to_mbed::I2C_interface_to_mbed(){}
         wheel_vel_msg.push_back(6.12);
         wheel_vel_msg.push_back(6.12);
         */
-        ROS_INFO("wheel_vel_msg：%0.1f, %0.1f, %0.1f", wheel_vel_msg[0], wheel_vel_msg[1], wheel_vel_msg[2], wheel_vel_msg[3]);
+        ROS_INFO("wheel_vel_msg: %0.1f, %0.1f, %0.1f", wheel_vel_msg[0], wheel_vel_msg[1], wheel_vel_msg[2], wheel_vel_msg[3]);
     }
 
     void I2C_interface_to_mbed::send_grabber_i2c_msg(const eurobot2019_messages::grabber_motors& grabber_motors_msg){
@@ -75,7 +76,7 @@ I2C_interface_to_mbed::I2C_interface_to_mbed(){}
 
     void I2C_interface_to_mbed::get_grabber_i2c_msg(eurobot2019_messages::grabber_motors& grabber_status_msg) {
         std::string grabber_motors_i2c_msg;
-        grabber_motors_i2c_msg = i2c_handler_.read(DRIVE, 7); //reads motor values, length assumed to be 7
+        grabber_motors_i2c_msg = i2c_handler_.read(GRABBER, 7); //reads motor values, length assumed to be 7
         char str[7];
         sprintf(str, "%s", grabber_motors_i2c_msg.c_str());
         short* tmp = (short*)str;
@@ -117,7 +118,7 @@ I2C_interface_to_mbed::I2C_interface_to_mbed(){}
 
       void I2C_interface_to_mbed::get_dropper_i2c_msg(eurobot2019_messages::drop_motors& drop_status_msg){
           std::string dropper_status_i2c_msg;
-          dropper_status_i2c_msg = i2c_handler_.read(DRIVE, 12); //reads motor values, length assumed to be 7
+          dropper_status_i2c_msg = i2c_handler_.read(DROPPER, 12); //reads motor values, length assumed to be 7
           char str[12];
           sprintf(str, "%s", dropper_status_i2c_msg.c_str());
           short* tmp = (short*)str;
