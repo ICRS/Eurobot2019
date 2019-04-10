@@ -40,13 +40,13 @@ I2C_interface_to_mbed::I2C_interface_to_mbed(){}
         for(int i = 0; i < 4; i++){
             wheel_vel_msg.push_back((float) *(tmp++)/100.f);
         }
-        ROS_INFO("wheel_vel_msg：%0.1f, %0.1f, %0.1f", wheel_vel_msg[0], wheel_vel_msg[1], wheel_vel_msg[2], wheel_vel_msg[3]);
         /* test
         wheel_vel_msg.push_back(6.12);
         wheel_vel_msg.push_back(6.12);
         wheel_vel_msg.push_back(6.12);
         wheel_vel_msg.push_back(6.12);
         */
+        ROS_INFO("wheel_vel_msg：%0.1f, %0.1f, %0.1f", wheel_vel_msg[0], wheel_vel_msg[1], wheel_vel_msg[2], wheel_vel_msg[3]);
     }
 
     void I2C_interface_to_mbed::send_grabber_i2c_msg(const eurobot2019_messages::grabber_motors& grabber_motors_msg){

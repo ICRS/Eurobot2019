@@ -12,9 +12,9 @@
 #include <pigpio>
 #endif // __PC_TEST__
 
-#define I2C_BUS 0
+#define I2C_BUS 1
 
-#define DRIVE_ADDR 0x00
+#define DRIVE_ADDR 0x08
 #define GRABBER_ADDR 0x00
 #define DROPPER_ADDR 0x00
 
