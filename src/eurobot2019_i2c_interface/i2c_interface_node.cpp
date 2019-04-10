@@ -128,12 +128,12 @@ int main(int argc, char **argv) {
     int count = 0;
 
     geometry_msgs::Twist cmd_vel_msg;
-    cmd_vel_msg.linear.x = 2;
-    cmd_vel_msg.linear.y = 1;
+    cmd_vel_msg.linear.x = 1;
+    cmd_vel_msg.linear.y = -1;
     cmd_vel_msg.linear.z = 0;
     cmd_vel_msg.angular.x = 0;
     cmd_vel_msg.angular.y = 0;
-    cmd_vel_msg.angular.z = 1;
+    cmd_vel_msg.angular.z = -1;
 
     // initialise this to be zero for everything, (If using Empty messages to test ????)
     // std_msgs::Empty odometry_msg;
