@@ -16,99 +16,51 @@ StateManager::StateManager(ros::NodeHandle *nh) {
     motor_targets_[RETRACT_PUSHER_M] = m;
     motor_targets_[EXTEND_PUSHER_M] = m;
 std::cout << "set up map" << std::endl;
-    if(!nh->getParam("drop/idle_left_z",
-                     motor_targets_[IDLE_L].left_z)) {
-        ROS_ERROR("Failed to get param 'drop/idle_left_z'");
-    }
-    if(!nh->getParam("drop/idle_left_x",
+    if(!nh->getParam("drop/idle_x",
                      motor_targets_[IDLE_L].left_x)) {
         ROS_ERROR("Failed to get param 'drop/idle_left_x'");
     }
-    if(!nh->getParam("drop/idle_middle_z",
-                     motor_targets_[IDLE_M].middle_z)) {
-        ROS_ERROR("Failed to get param 'drop/idle_middle_z'");
-    }
-    if(!nh->getParam("drop/idle_middle_x",
+    if(!nh->getParam("drop/idle_x",
                      motor_targets_[IDLE_M].middle_x)) {
         ROS_ERROR("Failed to get param 'drop/idle_middle_x'");
     }
-    if(!nh->getParam("drop/idle_right_z",
-                     motor_targets_[IDLE_R].right_z)) {
-        ROS_ERROR("Failed to get param 'drop/idle_right_z'");
-    }
-    if(!nh->getParam("drop/idle_right_x",
+    if(!nh->getParam("drop/idle_x",
                      motor_targets_[IDLE_R].right_x)) {
         ROS_ERROR("Failed to get param 'drop/idle_right_x'");
     }
-    if(!nh->getParam("drop/retract_pusher_left_z",
-                     motor_targets_[RETRACT_PUSHER_L].left_z)) {
-        ROS_ERROR("Failed to get param 'drop/retract_pusher_left_z'");
-    }
-    if(!nh->getParam("drop/retract_pusher_left_x",
+    if(!nh->getParam("drop/retract_pusher_x",
                      motor_targets_[RETRACT_PUSHER_L].left_x)) {
         ROS_ERROR("Failed to get param 'drop/retract_pusher_left_x'");
     }
-    if(!nh->getParam("drop/retract_pusher_middle_z",
-                     motor_targets_[RETRACT_PUSHER_M].middle_z)) {
-        ROS_ERROR("Failed to get param 'drop/retract_pusher_middle_z'");
-    }
-    if(!nh->getParam("drop/retract_pusher_middle_x",
+    if(!nh->getParam("drop/retract_pusher_x",
                      motor_targets_[RETRACT_PUSHER_M].middle_x)) {
         ROS_ERROR("Failed to get param 'drop/retract_pusher_middle_x'");
     }
-    if(!nh->getParam("drop/retract_pusher_right_z",
-                     motor_targets_[RETRACT_PUSHER_R].right_z)) {
-        ROS_ERROR("Failed to get param 'drop/retract_pusher_right_z'");
-    }
-    if(!nh->getParam("drop/retract_pusher_right_x",
+    if(!nh->getParam("drop/retract_pusher_x",
                      motor_targets_[RETRACT_PUSHER_R].right_x)) {
         ROS_ERROR("Failed to get param 'drop/retract_pusher_right_x'");
     }
-    if(!nh->getParam("drop/lower_stepper_left_z",
+    if(!nh->getParam("drop/lower_stepper_z",
                      motor_targets_[LOWER_STEPPER_L].left_z)) {
         ROS_ERROR("Failed to get param 'drop/lower_stepper_left_z'");
     }
-    if(!nh->getParam("drop/lower_stepper_left_x",
-                     motor_targets_[LOWER_STEPPER_L].left_x)) {
-        ROS_ERROR("Failed to get param 'drop/lower_stepper_left_x'");
-    }
-    if(!nh->getParam("drop/lower_stepper_middle_z",
+    if(!nh->getParam("drop/lower_stepper_z",
                      motor_targets_[LOWER_STEPPER_M].middle_z)) {
         ROS_ERROR("Failed to get param 'drop/lower_stepper_middle_z'");
     }
-    if(!nh->getParam("drop/lower_stepper_middle_x",
-                     motor_targets_[LOWER_STEPPER_M].middle_x)) {
-        ROS_ERROR("Failed to get param 'drop/lower_stepper_middle_x'");
-    }
-    if(!nh->getParam("drop/lower_stepper_right_z",
+    if(!nh->getParam("drop/lower_stepper_z",
                      motor_targets_[LOWER_STEPPER_R].right_z)) {
         ROS_ERROR("Failed to get param 'drop/lower_stepper_right_z'");
     }
-    if(!nh->getParam("drop/lower_stepper_right_x",
-                     motor_targets_[LOWER_STEPPER_R].right_x)) {
-        ROS_ERROR("Failed to get param 'drop/lower_stepper_right_x'");
-    }
-    if(!nh->getParam("drop/extend_pusher_left_z",
-                     motor_targets_[EXTEND_PUSHER_L].left_z)) {
-        ROS_ERROR("Failed to get param 'drop/extend_pusher_left_z'");
-    }
-    if(!nh->getParam("drop/extend_pusher_left_x",
+    if(!nh->getParam("drop/extend_pusher_x",
                      motor_targets_[EXTEND_PUSHER_L].left_x)) {
         ROS_ERROR("Failed to get param 'drop/extend_pusher_left_x'");
     }
-    if(!nh->getParam("drop/extend_pusher_middle_z",
-                     motor_targets_[EXTEND_PUSHER_M].middle_z)) {
-        ROS_ERROR("Failed to get param 'drop/extend_pusher_middle_z'");
-    }
-    if(!nh->getParam("drop/extend_pusher_middle_x",
+    if(!nh->getParam("drop/extend_pusher_x",
                      motor_targets_[EXTEND_PUSHER_M].middle_x)) {
         ROS_ERROR("Failed to get param 'drop/extend_pusher_middle_x'");
     }
-    if(!nh->getParam("drop/extend_pusher_right_z",
-                     motor_targets_[EXTEND_PUSHER_R].right_z)) {
-        ROS_ERROR("Failed to get param 'drop/extend_pusher_right_z'");
-    }
-    if(!nh->getParam("drop/extend_pusher_right_x",
+    if(!nh->getParam("drop/extend_pusher_x",
                      motor_targets_[EXTEND_PUSHER_R].right_x)) {
         ROS_ERROR("Failed to get param 'drop/extend_pusher_right_x'");
     }

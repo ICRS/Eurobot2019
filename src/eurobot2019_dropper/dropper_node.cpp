@@ -29,13 +29,14 @@ int main(int argc, char **argv) {
                      eurobot2019_messages::drop_motors>
                 hardware(10, "drop_motors", 10, "drop_motor_status");
 std::cout << "declared hardware" << std::endl;
-    // Create interface to the tactics node
-    MessageSubscriberInterface<eurobot2019_messages::drop_command>
-                command(10, "drop");
+    // Create interface to the tactics node, drop_status_left below is added with drop_ to form one MessageInterface as a workaround
+    // to fix an issue with MessageSubsrciberInterface
+    MessageInterface<std_msgs::Int32, eurobot2019_messages::drop_command>
+                command(10, "drop_status_l", 10, "drop");
                     std::cout << "declared command" << std::endl;
     // sends queue size for every tower
-    MessagePublisherInterface<std_msgs::Int32>
-                drop_status_left(10, "drop_status_l");
+    /*MessagePublisherInterface<std_msgs::Int32> // removed and merged with command to fix MessageSubscriberInterface bug
+                drop_status_left(10, "drop_status_l");*/
 std::cout << "declared drop_left" << std::endl;
     MessagePublisherInterface<std_msgs::Int32>
                 drop_status_right(10, "drop_status_r");
@@ -60,7 +61,7 @@ std::cout << "declared state_manager" << std::endl;
     std_msgs::Int32 drop_status_left_msg;
     std_msgs::Int32 drop_status_right_msg;
     std_msgs::Int32 drop_status_middle_msg;
-
+std::cout << "created Int32s" << std::endl;
     // Create 3 queues to manage the state order
     std::queue<DropState> state_queue_left;
     state_queue_left.push(IDLE_L);
@@ -70,26 +71,24 @@ std::cout << "declared state_manager" << std::endl;
 
     std::queue<DropState> state_queue_middle;
     state_queue_middle.push(IDLE_M);
-
+std::cout << "made queues" << std::endl;
     // Queue is size 1 so set the msg
     drop_status_left_msg.data = 1;
     drop_status_right_msg.data = 1;
     drop_status_middle_msg.data = 1;
-    drop_status_left.set_msg(drop_status_left_msg);
+    command.set_msg(drop_status_left_msg);
     drop_status_right.set_msg(drop_status_right_msg);
     drop_status_middle.set_msg(drop_status_middle_msg);
-
+std::cout << "set Ints" << std::endl;
     // 100 Hz update rate
     ros::Rate sleeper(100);
 
     while(ros::ok()) {
         // Get the message from command
         auto command_msg = command.get_msg();
-
         // Do stuff with the message if it has changed
         if(command_msg.left != old_command_msg.left || command_msg.right != old_command_msg.right || command_msg.middle != old_command_msg.middle
            ) {
-
             ROS_INFO("New command message received");
             old_command_msg = command_msg;
 
@@ -124,7 +123,6 @@ std::cout << "declared state_manager" << std::endl;
                      state_queue_middle.push(EXTEND_PUSHER_M);
                  }
            }
-
 
            // Update current position
            auto dropper_pos = hardware.get_msg();
@@ -204,7 +202,7 @@ std::cout << "declared state_manager" << std::endl;
 
            // send messages to hardware (command stepper and pusher) and tactics (number of states left in queue for every tower)
            hardware.set_msg(motor_msg);
-           drop_status_left.set_msg(drop_status_left_msg);
+           command.set_msg(drop_status_left_msg);
            drop_status_right.set_msg(drop_status_right_msg);
            drop_status_middle.set_msg(drop_status_middle_msg);
 

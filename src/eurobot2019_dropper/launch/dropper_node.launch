@@ -1,30 +1,10 @@
 <launch>
     <node pkg="eurobot2019_dropper" type="node" name="drop"
           output="screen">
-        <param name="idle_left_z" type="double" value="0"/>
-        <param name="idle_left_x" type="double" value="0"/>
-        <param name="idle_middle_z" type="double" value="0"/>
-        <param name="idle_middle_x" type="double" value="0"/>
-        <param name="idle_right_z" type="double" value="0"/>
-        <param name="idle_right_x" type="double" value="0"/>
-        <param name="retract_pusher_left_z" type="double" value="0"/>
-        <param name="retract_pusher_left_x" type="double" value="0"/>
-        <param name="retract_pusher_middle_z" type="double" value="0"/>
-        <param name="retract_pusher_middle_x" type="double" value="0"/>
-        <param name="retract_pusher_right_z" type="double" value="0"/>
-        <param name="retract_pusher_right_x" type="double" value="0"/>
-        <param name="lower_stepper_left_z" type="double" value="0"/>
-        <param name="lower_stepper_left_x" type="double" value="0"/>
-        <param name="lower_stepper_middle_z" type="double" value="0"/>
-        <param name="lower_stepper_middle_x" type="double" value="0"/>
-        <param name="lower_stepper_right_z" type="double" value="0"/>
-        <param name="lower_stepper_right_x" type="double" value="0"/>
+        <param name="idle_x" type="double" value="0"/>
+        <param name="retract_pusher_x" type="double" value="0"/>
+        <param name="lower_stepper_z" type="double" value="0"/>
         <!-- modify the drop/extend_pusher_x values appropriately, should be distance after which puck is definitely pushed out -->
-        <param name="extend_pusher_left_z" type="double" value="0"/>
-        <param name="extend_pusher_left_x" type="double" value="3.0"/>
-        <param name="extend_pusher_middle_z" type="double" value="0"/>
-        <param name="extend_pusher_middle_x" type="double" value="3.0"/>
-        <param name="extend_pusher_right_z" type="double" value="0"/>
-        <param name="extend_pusher_right_x" type="double" value="3.0"/>
+        <param name="extend_pusher_x" type="double" value="3.0"/>
 </node>
 </launch>
