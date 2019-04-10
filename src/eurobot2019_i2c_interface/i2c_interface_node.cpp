@@ -64,20 +64,45 @@ int main(int argc, char **argv) {
         current_pos.twist.covariance[i] = 0;
     }
 
-    node_handle.param<double>("pose_point_x", current_pos.pose.pose.position.x, 0);
-    node_handle.param<double>("pose_point_y", current_pos.pose.pose.position.y, 0);
-    node_handle.param<double>("pose_point_z", current_pos.pose.pose.position.z, 0);
-    node_handle.param<double>("pose_orientation_quaternion_x", current_pos.pose.pose.orientation.x, 0);
-    node_handle.param<double>("pose_orientation_quaternion_y", current_pos.pose.pose.orientation.y, 0);
-    node_handle.param<double>("pose_orientation_quaternion_z", current_pos.pose.pose.orientation.z, 0);
-    node_handle.param<double>("pose_orientation_quaternion_w", current_pos.pose.pose.orientation.w, 0);
-    node_handle.param<double>("pose_orientation_angle", current_angle, 0);
-    node_handle.param<double>("twist_linear_x", current_pos.twist.twist.linear.x, 0);
-    node_handle.param<double>("twist_linear_y", current_pos.twist.twist.linear.y, 0);
-    node_handle.param<double>("twist_linear_z", current_pos.twist.twist.linear.z, 0);
-    node_handle.param<double>("twist_angular_x", current_pos.twist.twist.angular.x, 0);
-    node_handle.param<double>("twist_angular_y", current_pos.twist.twist.angular.y, 0);
-    node_handle.param<double>("twist_angular_z", current_pos.twist.twist.angular.z, 0);
+    if(!node_handle.getParam("pose_point_x", current_pos.pose.pose.position.x)){
+        ROS_ERROR("Failed to get param 'pose_point_x'");
+    }
+    if(!node_handle.getParam("pose_point_y", current_pos.pose.pose.position.y)){
+        ROS_ERROR("Failed to get param 'pose_point_y'");
+    }
+    if(!node_handle.getParam("pose_point_z", current_pos.pose.pose.position.z)){
+        ROS_ERROR("Failed to get param 'pose_point_z'");
+    }
+    if(!node_handle.getParam("pose_orientation_quaternion_x", current_pos.pose.pose.orientation.x)){
+        ROS_ERROR("Failed to get param 'pose_orientation_quaternion_x'");
+    }
+    if(!node_handle.getParam("pose_orientation_quaternion_y", current_pos.pose.pose.orientation.y)){
+        ROS_ERROR("Failed to get param 'pose_orientation_quaternion_y'");
+    }
+    if(!node_handle.getParam("pose_orientation_quaternion_z", current_pos.pose.pose.orientation.z)){
+        ROS_ERROR("Failed to get param 'pose_orientation_quaternion_z'");
+    }
+    if(!node_handle.getParam("pose_orientation_quaternion_w", current_pos.pose.pose.orientation.w)){
+        ROS_ERROR("Failed to get param 'pose_orientation_quaternion_w'");
+    }
+    if(!node_handle.getParam("twist_linear_x", current_pos.twist.twist.linear.x)){
+        ROS_ERROR("Failed to get param 'twist_linear_x'");
+    }
+    if(!node_handle.getParam("twist_linear_y", current_pos.twist.twist.linear.y)){
+        ROS_ERROR("Failed to get param 'twist_linear_y'");
+    }
+    if(!node_handle.getParam("twist_linear_z", current_pos.twist.twist.linear.z)){
+        ROS_ERROR("Failed to get param 'twist_linear_z'");
+    }
+    if(!node_handle.getParam("twist_angular_x", current_pos.twist.twist.angular.x)){
+        ROS_ERROR("Failed to get param 'twist_linear_x'");
+    }
+    if(!node_handle.getParam("twist_angular_y", current_pos.twist.twist.angular.y)){
+        ROS_ERROR("Failed to get param 'twist_linear_y'");
+    }
+    if(!node_handle.getParam("twist_angular_z", current_pos.twist.twist.angular.z)){
+        ROS_ERROR("Failed to get param 'twist_linear_z'");
+    }
 
     MessageInterface<eurobot2019_messages::drop_motors, eurobot2019_messages::drop_motors>
                 drop_interface(1, "drop_status",
@@ -179,7 +204,7 @@ void wheel_vel_to_odom(nav_msgs::Odometry& current_pos, double& current_angle, c
     double delta_y = (linear_x * sin(current_angle) + linear_y * cos(current_angle)) * dt;
     double delta_th = angular_z * dt;
 
-    ROS_INFO("Msg：%0.1f, %0.1f, %0.1f", linear_x, linear_y, angular_z);
+    ROS_INFO("linear + angular vels：%0.1f, %0.1f, %0.1f", linear_x, linear_y, angular_z);
 
     Quaterniond q;
     q = toQuaternion(angular_z, 0, 0);
