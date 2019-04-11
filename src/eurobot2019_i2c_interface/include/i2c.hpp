@@ -30,9 +30,10 @@ public:
     // Write a *message* to the *target*
     void write(I2CMessageType target, std::string message);
     // Read a message of length *len* to the *target*
-    std::string read(I2CMessageType target, unsigned short len);
+    void read(I2CMessageType target, unsigned short len, char* buf);
 private:
     std::map<I2CMessageType, int> handles_;
+    char error_check_drive_[8] = {128, '\0', 128, '\0', 128, '\0', 128, '\0'};
 };
 
 #endif // __I2C_HPP__

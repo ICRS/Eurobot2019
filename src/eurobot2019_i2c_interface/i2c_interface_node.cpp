@@ -120,8 +120,8 @@ int main(int argc, char **argv) {
 
 
 
-    // Control loop rate to be 100 Hz
-    ros::Rate loop_rate(100);
+    // Control loop rate to be 10 Hz, max is ~20
+    ros::Rate loop_rate(10);
 
     int count = 0;
 

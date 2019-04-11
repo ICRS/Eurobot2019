@@ -32,14 +32,13 @@ void I2C::write(I2CMessageType target, std::string message) {
 #endif // __PC_TEST__
 }
 
-std::string I2C::read(I2CMessageType target, unsigned short len) {
+void I2C::read(I2CMessageType target, unsigned short len, char* buf) {
 #ifndef __arm__
     std::cout << "Returning empty data from " << target << std::endl;
-    return "";
 #else
-    char buf[len];
-    memset(buf, '\0', len);
+    if(len == 8){
+        memcpy(buf, error_check_drive_, 8);
+    }
     i2cReadDevice(handles_[target], buf, len);
-    return std::string(buf);
 #endif // __PC_TEST__
 }
