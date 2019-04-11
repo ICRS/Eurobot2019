@@ -37,7 +37,6 @@ I2C_interface_to_mbed::I2C_interface_to_mbed(){}
         sprintf(str, "%s", wheel_vel_i2c_msg.c_str());
         short* tmp = (short*)str;
 
-        wheel_vel_msg.clear();
         for(int i = 0; i < 4; i++){
             wheel_vel_msg.push_back((float) *(tmp++)/100.f);
         }
