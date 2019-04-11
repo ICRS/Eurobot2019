@@ -58,11 +58,10 @@ I2C_interface_to_mbed::I2C_interface_to_mbed(){}
       grabber_vector.push_back(grabber_motors_msg.z_pos_mm * 100);
       grabber_vector.push_back(grabber_motors_msg.open_pos_mm * 100);
       grabber_vector.push_back(grabber_motors_msg.z_twist_rad * 100);
-      grabber_vector.push_back(grabber_motors_msg.servo_state);
       std::string grabber_i2c_msg;
       // save pointer for eurobot2019_messages/grabber_motors elements in char pointer d
       char *d;
-      for(int j = 0; j < 4; j++){
+      for(int j = 0; j < 3; j++){
         d = (char*)&(grabber_vector[j]);
         for(int i = 0; i < 2; i++){
           // dereference every byte of element as a char into grabber_i2c_msg
@@ -70,8 +69,11 @@ I2C_interface_to_mbed::I2C_interface_to_mbed(){}
         }
       }
 
+      grabber_i2c_msg += (char) grabber_motors_msg.servo_state;
+
       //Send the converted grabber_motors_msg from the interface to a target unknown in GRABBER.
       i2c_handler_.write(GRABBER, grabber_i2c_msg);
+      ROS_INFO("grabberVals: %hi, %hi, %hi, %hi", grabber_vector[0], grabber_vector[1], grabber_vector[2], grabber_motors_msg.servo_state);
     }
 
     void I2C_interface_to_mbed::get_grabber_i2c_msg(eurobot2019_messages::grabber_motors& grabber_status_msg) {
@@ -101,6 +103,8 @@ I2C_interface_to_mbed::I2C_interface_to_mbed(){}
         i++;
 
         grabber_status_msg.servo_state = grabber_motors_i2c_msg[2*i];
+
+        std::cout << "The " << i << "th value is " << (int) grabber_status_msg.servo_state << std::endl; //debug msg
       }
 
       void I2C_interface_to_mbed::send_dropper_i2c_msg(const eurobot2019_messages::drop_motors& drop_motors_msg) {
