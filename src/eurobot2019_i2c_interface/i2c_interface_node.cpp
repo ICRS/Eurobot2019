@@ -150,7 +150,7 @@ int main(int argc, char **argv) {
 
         //i2c_interface.send_grabber_i2c_msg(grabber_motors_msg);
         //i2c_interface.send_dropper_i2c_msg(drop_motors_msg);
-        //i2c_interface.send_drive_i2c_msg(cmd_vel_msg);
+        i2c_interface.send_drive_i2c_msg(cmd_vel_msg);
 
         // Create a message and set the current message to be sent
         // This will continue to be sent until a new message is set
