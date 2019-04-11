@@ -33,7 +33,7 @@ public:
     void read(I2CMessageType target, unsigned short len, char* buf);
 private:
     std::map<I2CMessageType, int> handles_;
-    char error_check_drive_[8] = {128, '\0', 128, '\0', 128, '\0', 128, '\0'};
+    char error_check_drive_[8] = {(char) 128, '\0', (char) 128, '\0', (char)  128, '\0', (char) 128, '\0'};
 };
 
 #endif // __I2C_HPP__
