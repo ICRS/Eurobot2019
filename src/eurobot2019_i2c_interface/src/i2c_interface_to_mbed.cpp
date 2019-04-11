@@ -77,15 +77,30 @@ I2C_interface_to_mbed::I2C_interface_to_mbed(){}
     void I2C_interface_to_mbed::get_grabber_i2c_msg(eurobot2019_messages::grabber_motors& grabber_status_msg) {
         char grabber_motors_i2c_msg[7];
         i2c_handler_.read(GRABBER, 7, grabber_motors_i2c_msg); //reads motor values, length assumed to be 7
-        short* tmp = (short*)grabber_motors_i2c_msg;
+        int i = 0;
 
-        grabber_status_msg.z_pos_mm = (float) *(tmp++)/100.f;
-        grabber_status_msg.open_pos_mm = (float) *(tmp++)/100.f;
-        grabber_status_msg.z_twist_rad = (float) *(tmp++)/100.f;
+        short hibyte = grabber_motors_i2c_msg[2*i];
+        short lobyte = grabber_motors_i2c_msg[2*i+1];
+        int16_t x = hibyte << 8 | lobyte;
+        std::cout << "The " << i << "th value is " << x << std::endl; //debug msgs
+        grabber_status_msg.z_pos_mm = (float) x/100.f;
+        i++;
 
-        char* tmp_bool = (char*)tmp;
+        hibyte = grabber_motors_i2c_msg[2*i];
+        lobyte = grabber_motors_i2c_msg[2*i+1];
+        x = hibyte << 8 | lobyte;
+        std::cout << "The " << i << "th value is " << x << std::endl; //debug msgs
+        grabber_status_msg.open_pos_mm = (float) x/100.f;
+        i++;
 
-        grabber_status_msg.servo_state = (bool) *(tmp_bool);
+        hibyte = grabber_motors_i2c_msg[2*i];
+        lobyte = grabber_motors_i2c_msg[2*i+1];
+        x = hibyte << 8 | lobyte;
+        std::cout << "The " << i << "th value is " << x << std::endl; //debug msgs
+        grabber_status_msg.z_twist_rad = (float) x/100.f;
+        i++;
+
+        grabber_status_msg.servo_state = grabber_motors_i2c_msg[2*i];
       }
 
       void I2C_interface_to_mbed::send_dropper_i2c_msg(const eurobot2019_messages::drop_motors& drop_motors_msg) {
@@ -117,12 +132,46 @@ I2C_interface_to_mbed::I2C_interface_to_mbed(){}
       void I2C_interface_to_mbed::get_dropper_i2c_msg(eurobot2019_messages::drop_motors& drop_status_msg){
           char dropper_status_i2c_msg[12];
           i2c_handler_.read(DROPPER, 12, dropper_status_i2c_msg); //reads motor values, length assumed to be 12
-          short* tmp = (short*)dropper_status_i2c_msg;
+          int i = 0;
 
-          drop_status_msg.left_z = (float) *(tmp++)/100.f;
-          drop_status_msg.left_x = (float) *(tmp++)/100.f;
-          drop_status_msg.right_z = (float) *(tmp++)/100.f;
-          drop_status_msg.right_x = (float) *(tmp++)/100.f;
-          drop_status_msg.middle_z = (float) *(tmp++)/100.f;
-          drop_status_msg.middle_x = (float) *(tmp)/100.f;
+          short hibyte = dropper_status_i2c_msg[2*i];
+          short lobyte = dropper_status_i2c_msg[2*i+1];
+          int16_t x = hibyte << 8 | lobyte;
+          std::cout << "The " << i << "th value is " << x << std::endl; //debug msgs
+          drop_status_msg.left_z = (float) x/100.f;
+          i++;
+
+          hibyte = dropper_status_i2c_msg[2*i];
+          lobyte = dropper_status_i2c_msg[2*i+1];
+          x = hibyte << 8 | lobyte;
+          std::cout << "The " << i << "th value is " << x << std::endl; //debug msgs
+          drop_status_msg.left_x = (float) x/100.f;
+          i++;
+
+          hibyte = dropper_status_i2c_msg[2*i];
+          lobyte = dropper_status_i2c_msg[2*i+1];
+          x = hibyte << 8 | lobyte;
+          std::cout << "The " << i << "th value is " << x << std::endl; //debug msgs
+          drop_status_msg.right_z = (float) x/100.f;
+          i++;
+
+          hibyte = dropper_status_i2c_msg[2*i];
+          lobyte = dropper_status_i2c_msg[2*i+1];
+          x = hibyte << 8 | lobyte;
+          std::cout << "The " << i << "th value is " << x << std::endl; //debug msgs
+          drop_status_msg.right_x = (float) x/100.f;
+          i++;
+
+          hibyte = dropper_status_i2c_msg[2*i];
+          lobyte = dropper_status_i2c_msg[2*i+1];
+          x = hibyte << 8 | lobyte;
+          std::cout << "The " << i << "th value is " << x << std::endl; //debug msgs
+          drop_status_msg.middle_z = (float) x/100.f;
+          i++;
+
+          hibyte = dropper_status_i2c_msg[2*i];
+          lobyte = dropper_status_i2c_msg[2*i+1];
+          x = hibyte << 8 | lobyte;
+          std::cout << "The " << i << "th value is " << x << std::endl; //debug msgs
+          drop_status_msg.middle_x = (float) x/100.f;
       }
