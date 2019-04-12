@@ -126,12 +126,12 @@ int main(int argc, char **argv) {
     int count = 0;
 
     geometry_msgs::Twist cmd_vel_msg;
-    cmd_vel_msg.linear.x = 1;
-    cmd_vel_msg.linear.y = -1;
+    cmd_vel_msg.linear.x = 0.5;
+    cmd_vel_msg.linear.y = 0;
     cmd_vel_msg.linear.z = 0;
     cmd_vel_msg.angular.x = 0;
     cmd_vel_msg.angular.y = 0;
-    cmd_vel_msg.angular.z = -1;
+    cmd_vel_msg.angular.z = 0;
 
     eurobot2019_messages::grabber_motors grabber_motors_msg;
     grabber_motors_msg.z_pos_mm = 30;
@@ -150,34 +150,34 @@ int main(int argc, char **argv) {
         // Read messages from relevant interfaces
         // messages to be sent to embed/arduino
         //auto grabber_motors_msg = grabber_interface.get_msg();
-        auto drop_motors_msg = drop_interface.get_msg();
+        //auto drop_motors_msg = drop_interface.get_msg();
         //auto cmd_vel_msg = navigation_interface.get_msg();
 
 
-        i2c_interface.send_grabber_i2c_msg(grabber_motors_msg);
-        i2c_interface.send_dropper_i2c_msg(drop_motors_msg);
-        //i2c_interface.send_drive_i2c_msg(cmd_vel_msg);
+        //i2c_interface.send_grabber_i2c_msg(grabber_motors_msg);
+        //i2c_interface.send_dropper_i2c_msg(drop_motors_msg);
+        i2c_interface.send_drive_i2c_msg(cmd_vel_msg);
 
         // Create a message and set the current message to be sent
         // This will continue to be sent until a new message is set
         // Get from I2C, convert from string to usable values
         //eurobot2019_messages::drop_motors drop_status_msg;
-        eurobot2019_messages::grabber_motors grabber_status_msg;
+        //eurobot2019_messages::grabber_motors grabber_status_msg;s
         std::vector<float> wheel_vel_msg;
         nav_msgs::Odometry odometry_msg; //convert from wheel speeds to twist + add pose
 
-        i2c_interface.get_grabber_i2c_msg(grabber_status_msg);
+        //i2c_interface.get_grabber_i2c_msg(grabber_status_msg);
         //i2c_interface.get_dropper_i2c_msg(drop_status_msg);
-        //i2c_interface.get_drive_i2c_msg(wheel_vel_msg);
-        //wheel_vel_to_odom(current_pos, current_angle, wheel_vel_msg);
-        //odometry_msg = current_pos;
+        i2c_interface.get_drive_i2c_msg(wheel_vel_msg);
+        wheel_vel_to_odom(current_pos, current_angle, wheel_vel_msg);
+        odometry_msg = current_pos;
 
         // Assume velocities are in a variable called drive_motor_msg
 
         // messages taken from embed/arduino to be sent to nodes
         //drop_interface.set_msg(drop_status_msg);
-        grabber_interface.set_msg(grabber_status_msg);
-        //navigation_interface.set_msg(odometry_msg);
+        //grabber_interface.set_msg(grabber_status_msg);
+        navigation_interface.set_msg(odometry_msg);
 
 /* EXAMPLE of ifdef
 #ifdef __PC_TEST__
