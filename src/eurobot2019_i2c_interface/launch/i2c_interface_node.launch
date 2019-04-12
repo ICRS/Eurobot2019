@@ -17,4 +17,6 @@
     <param name="twist_angular_z" value="0" type="double"/>
     <!-- This Param directly gives initial z-axis, 2-D, angular orientation for Odometry -->
     <param name="pose_orientation_angular" value="0" type="double"/>
+    <!-- This is the maximum value to accept from odom before ignoring and using the previous value -->
+    <param name="max_wheel_vel" value="3" type="double"/>
 </launch>

@@ -41,12 +41,7 @@ I2C_interface_to_mbed::I2C_interface_to_mbed(){}
             std::cout << "The " << i << "th value is " << x << std::endl; //debug msgs
             wheel_vel_msg.push_back((float) x/100.f);
         }
-        /* test
-        wheel_vel_msg.push_back(6.12);
-        wheel_vel_msg.push_back(6.12);
-        wheel_vel_msg.push_back(6.12);
-        wheel_vel_msg.push_back(6.12);
-        */
+
         ROS_INFO("wheel_vel_msg: %0.1f, %0.1f, %0.1f", wheel_vel_msg[0], wheel_vel_msg[1], wheel_vel_msg[2], wheel_vel_msg[3]);
     }
 

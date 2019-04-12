@@ -43,7 +43,7 @@ int main(int argc, char **argv) {
     ros::NodeHandle node_handle;
 
     nav_msgs::Odometry current_pos;
-    double current_angle;
+    double current_angle = 0;
 
     I2C_interface_to_mbed i2c_interface;
 
@@ -102,6 +102,11 @@ int main(int argc, char **argv) {
         ROS_ERROR("Failed to get param 'twist_linear_z'");
     }
 
+    float max_wheel_vel;
+    if(!node_handle.getParam("max_wheel_vel", max_wheel_vel)) {
+	ROS_ERROR("Failed to get param 'max_wheel_vel'");
+    }
+
     MessageInterface<eurobot2019_messages::drop_motors, eurobot2019_messages::drop_motors>
                 drop_interface(1, "drop_status",
                                10 , "drop_motors");
@@ -126,12 +131,6 @@ int main(int argc, char **argv) {
     int count = 0;
 
     geometry_msgs::Twist cmd_vel_msg;
-    cmd_vel_msg.linear.x = 0.5;
-    cmd_vel_msg.linear.y = 0;
-    cmd_vel_msg.linear.z = 0;
-    cmd_vel_msg.angular.x = 0;
-    cmd_vel_msg.angular.y = 0;
-    cmd_vel_msg.angular.z = 0;
 
     eurobot2019_messages::grabber_motors grabber_motors_msg;
     grabber_motors_msg.z_pos_mm = 30;
@@ -142,6 +141,9 @@ int main(int argc, char **argv) {
     // initialise this to be zero for everything, (If using Empty messages to test ????)
     // std_msgs::Empty odometry_msg;
 
+    std::vector<float> wheel_vel_msg;
+    nav_msgs::Odometry odometry_msg; //convert from wheel speeds to twist + add pose
+
     // Main loop
     while(ros::ok()) {
         // Do stuff
@@ -151,7 +153,7 @@ int main(int argc, char **argv) {
         // messages to be sent to embed/arduino
         //auto grabber_motors_msg = grabber_interface.get_msg();
         //auto drop_motors_msg = drop_interface.get_msg();
-        //auto cmd_vel_msg = navigation_interface.get_msg();
+        cmd_vel_msg = navigation_interface.get_msg();
 
 
         //i2c_interface.send_grabber_i2c_msg(grabber_motors_msg);
@@ -163,12 +165,19 @@ int main(int argc, char **argv) {
         // Get from I2C, convert from string to usable values
         //eurobot2019_messages::drop_motors drop_status_msg;
         //eurobot2019_messages::grabber_motors grabber_status_msg;s
-        std::vector<float> wheel_vel_msg;
-        nav_msgs::Odometry odometry_msg; //convert from wheel speeds to twist + add pose
 
         //i2c_interface.get_grabber_i2c_msg(grabber_status_msg);
         //i2c_interface.get_dropper_i2c_msg(drop_status_msg);
-        i2c_interface.get_drive_i2c_msg(wheel_vel_msg);
+        std::vector<float> nwvm;
+        i2c_interface.get_drive_i2c_msg(nwvm);
+
+	// If the message is greater than the maximum allowed, then use the previous speeds
+	if(fabs(nwvm[0]) < max_wheel_vel ||
+           fabs(nwvm[1]) < max_wheel_vel ||
+	   fabs(nwvm[2]) < max_wheel_vel ||
+	   fabs(nwvm[3]) < max_wheel_vel) 
+	    wheel_vel_msg = nwvm;
+
         wheel_vel_to_odom(current_pos, current_angle, wheel_vel_msg);
         odometry_msg = current_pos;
 
@@ -178,14 +187,6 @@ int main(int argc, char **argv) {
         //drop_interface.set_msg(drop_status_msg);
         //grabber_interface.set_msg(grabber_status_msg);
         navigation_interface.set_msg(odometry_msg);
-
-/* EXAMPLE of ifdef
-#ifdef __PC_TEST__
-        std::cout << "Set pin 14 to 1" << std::endl;
-#else
-        gpioWrite(14, 1);
-#endif
-*/
 
         // Keep update frequency
         loop_rate.sleep();
@@ -214,8 +215,8 @@ void wheel_vel_to_odom(nav_msgs::Odometry& current_pos, double& current_angle, c
     double angular_z = (-4.127890003*wheel_vel_msg[0] + 4.127890003*wheel_vel_msg[1] -4.83686361*wheel_vel_msg[2] + 4.83686361*wheel_vel_msg[3])*(RADIUS/4.0)*6.2831852;
 
     double dt = time_span.count();
-    double delta_x = (linear_x * cos(current_angle) - linear_y * sin(current_angle)) * dt;
-    double delta_y = (linear_x * sin(current_angle) + linear_y * cos(current_angle)) * dt;
+    double delta_x = (linear_x * cos(current_angle) - linear_y * sin(current_angle)) * dt / 1000.0;
+    double delta_y = (linear_x * sin(current_angle) + linear_y * cos(current_angle)) * dt / 1000.0;
     double delta_th = angular_z * dt;
 
     ROS_INFO("linear + angular vels: %0.1f, %0.1f, %0.1f", linear_x, linear_y, angular_z);
