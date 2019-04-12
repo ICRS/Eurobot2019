@@ -120,7 +120,7 @@ int main(int argc, char **argv) {
     //publisher: nav_msgs/Odometry for Odom
     //subscriber: geometry_msgs/Twist for cmd_vel
     MessageInterface<nav_msgs::Odometry, geometry_msgs::Twist>
-                navigation_interface(1, "odom",
+                navigation_interface(10, "odom",
                                      10 , "cmd_vel");
 
 
