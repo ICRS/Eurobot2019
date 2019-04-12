@@ -141,7 +141,7 @@ int main(int argc, char **argv) {
     // initialise this to be zero for everything, (If using Empty messages to test ????)
     // std_msgs::Empty odometry_msg;
 
-    std::vector<float> wheel_vel_msg;
+    std::vector<float> wheel_vel_msg = { 0, 0, 0, 0 };
     nav_msgs::Odometry odometry_msg; //convert from wheel speeds to twist + add pose
 
     // Main loop
@@ -168,6 +168,8 @@ int main(int argc, char **argv) {
 
         //i2c_interface.get_grabber_i2c_msg(grabber_status_msg);
         //i2c_interface.get_dropper_i2c_msg(drop_status_msg);
+	
+	// New Wheel Velocity Message
         std::vector<float> nwvm;
         i2c_interface.get_drive_i2c_msg(nwvm);
 
