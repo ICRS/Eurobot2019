@@ -168,7 +168,7 @@ int main(int argc, char **argv) {
 
         //i2c_interface.get_grabber_i2c_msg(grabber_status_msg);
         //i2c_interface.get_dropper_i2c_msg(drop_status_msg);
-	
+
 	// New Wheel Velocity Message
         std::vector<float> nwvm;
         i2c_interface.get_drive_i2c_msg(nwvm);
@@ -177,7 +177,7 @@ int main(int argc, char **argv) {
 	if(fabs(nwvm[0]) < max_wheel_vel ||
            fabs(nwvm[1]) < max_wheel_vel ||
 	   fabs(nwvm[2]) < max_wheel_vel ||
-	   fabs(nwvm[3]) < max_wheel_vel) 
+	   fabs(nwvm[3]) < max_wheel_vel)
 	    wheel_vel_msg = nwvm;
 
         wheel_vel_to_odom(current_pos, current_angle, wheel_vel_msg);
@@ -222,6 +222,7 @@ void wheel_vel_to_odom(nav_msgs::Odometry& current_pos, double& current_angle, c
     double delta_th = angular_z * dt;
 
     ROS_INFO("linear + angular vels: %0.1f, %0.1f, %0.1f", linear_x, linear_y, angular_z);
+    ROS_INFO("linear pos + angle: %0.1f, %0.1f, %0.1f", delta_x, delta_y, delta_th)
 
     Quaterniond q;
     q = toQuaternion(angular_z, 0, 0);
