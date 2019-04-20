@@ -223,6 +223,7 @@ void wheel_vel_to_odom(nav_msgs::Odometry& current_pos, double& current_angle, c
     double delta_th = angular_z * dt;
     ROS_INFO("current_angle: %0.3f", current_angle);
 
+    ROS_INFO("dt: %f", dt);
     ROS_INFO("linear + angular vels: %0.1f, %0.1f, %0.1f", linear_x, linear_y, angular_z);
     ROS_INFO("linear pos + angle: %0.1f, %0.1f, %0.1f", delta_x, delta_y, delta_th);
 
