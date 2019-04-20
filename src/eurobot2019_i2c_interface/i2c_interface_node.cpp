@@ -208,17 +208,18 @@ int main(int argc, char **argv) {
 //converts wheel angular vels to the nav_msgs/Odometry format by updating current_pos.
 //current_angle is the 'euler' yaw, is saved for easy access
 void wheel_vel_to_odom(nav_msgs::Odometry& current_pos, double& current_angle, const std::vector<float>& wheel_vel_msg){
+    static auto t1 = std::chrono::high_resolution_clock::now();
     auto t2 = std::chrono::high_resolution_clock::now();
-    auto time_span = std::chrono::duration_cast<std::chrono::second>(t2 - t1);
-    auto t1 = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double, std::chrono::seconds> time_span = t2 - t1;
+    t1 = t2;
 
     double linear_x = (wheel_vel_msg[0] + wheel_vel_msg[1] + wheel_vel_msg[2] + wheel_vel_msg[3])*(RADIUS/4.0)*6.2831852;
     double linear_y = (-wheel_vel_msg[0] + wheel_vel_msg[1] + wheel_vel_msg[2] - wheel_vel_msg[3])*(RADIUS/4.0)*6.2831852;
     double angular_z = (-4.127890003*wheel_vel_msg[0] + 4.127890003*wheel_vel_msg[1] -4.83686361*wheel_vel_msg[2] + 4.83686361*wheel_vel_msg[3])*(RADIUS/4.0)*6.2831852;
 
     double dt = time_span.count();
-    double delta_x = (linear_x * cos(current_angle) - linear_y * sin(current_angle)) * dt / 1000.0;
-    double delta_y = (linear_x * sin(current_angle) + linear_y * cos(current_angle)) * dt / 1000.0;
+    double delta_x = (linear_x * cos(current_angle) - linear_y * sin(current_angle)) * dt;
+    double delta_y = (linear_x * sin(current_angle) + linear_y * cos(current_angle)) * dt;
     double delta_th = angular_z * dt;
 
     ROS_INFO("linear + angular vels: %0.1f, %0.1f, %0.1f", linear_x, linear_y, angular_z);
