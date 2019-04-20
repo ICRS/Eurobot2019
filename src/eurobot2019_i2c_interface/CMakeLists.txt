@@ -11,6 +11,9 @@ find_package(catkin REQUIRED
   roscpp
   eurobot2019_messages
   std_msgs
+  geometry_msgs
+  tf2
+  tf2_ros
 )
 
 ## System dependencies are found with CMake's conventions
