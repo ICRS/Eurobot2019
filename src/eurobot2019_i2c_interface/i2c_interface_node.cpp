@@ -32,9 +32,6 @@ struct Quaterniond{
 void wheel_vel_to_odom(nav_msgs::Odometry& current_pos, double& current_angle, const std::vector<float>& wheel_vel_msg);
 Quaterniond toQuaternion(double yaw, double pitch, double roll);
 
-std::chrono::high_resolution_clock::time_point t1 = std::chrono::high_resolution_clock::now();
-// This time is set as a global variable to allow first run of wheel_vel_to_odom() without passing t1 into function
-
 
 int main(int argc, char **argv) {
     // Init ROS
@@ -179,10 +176,11 @@ int main(int argc, char **argv) {
 
 	// If the message is greater than the maximum allowed, then use the previous speeds
 	if(fabs(nwvm[0]) < max_wheel_vel ||
-           fabs(nwvm[1]) < max_wheel_vel ||
+     fabs(nwvm[1]) < max_wheel_vel ||
 	   fabs(nwvm[2]) < max_wheel_vel ||
-	   fabs(nwvm[3]) < max_wheel_vel)
+	   fabs(nwvm[3]) < max_wheel_vel) {
 	    wheel_vel_msg = nwvm;
+  }
 
         wheel_vel_to_odom(current_pos, current_angle, wheel_vel_msg);
         odometry_msg = current_pos;
