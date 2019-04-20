@@ -208,9 +208,9 @@ int main(int argc, char **argv) {
 //converts wheel angular vels to the nav_msgs/Odometry format by updating current_pos.
 //current_angle is the 'euler' yaw, is saved for easy access
 void wheel_vel_to_odom(nav_msgs::Odometry& current_pos, double& current_angle, const std::vector<float>& wheel_vel_msg){
-    std::chrono::high_resolution_clock::time_point t2 = std::chrono::high_resolution_clock::now();
-    std::chrono::duration<std::chrono::second> time_span = std::chrono::duration_cast<std::chrono::duration<std::chrono::second>>(t2 - t1);
-    std::chrono::high_resolution_clock::time_point t1 = std::chrono::high_resolution_clock::now();
+    auto t2 = std::chrono::high_resolution_clock::now();
+    auto time_span = std::chrono::duration_cast<std::chrono::second>(t2 - t1);
+    auto t1 = std::chrono::high_resolution_clock::now();
 
     double linear_x = (wheel_vel_msg[0] + wheel_vel_msg[1] + wheel_vel_msg[2] + wheel_vel_msg[3])*(RADIUS/4.0)*6.2831852;
     double linear_y = (-wheel_vel_msg[0] + wheel_vel_msg[1] + wheel_vel_msg[2] - wheel_vel_msg[3])*(RADIUS/4.0)*6.2831852;
