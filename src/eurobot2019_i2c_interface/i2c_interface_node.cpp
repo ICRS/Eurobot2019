@@ -7,6 +7,7 @@
 #include "std_msgs/Empty.h"
 #include "geometry_msgs/Twist.h"
 #include "nav_msgs/Odometry.h"
+#include "tf2_ros/transform_broadcaster.h"
 #include "eurobot2019_messages/drop_motors.h"
 #include "eurobot2019_messages/grabber_motors.h"
 #include <i2c.hpp>
@@ -123,7 +124,10 @@ int main(int argc, char **argv) {
                 navigation_interface(10, "odom",
                                      10 , "cmd_vel");
 
-
+    tf2_ros::TransformBroadcaster odom_broadcaster;
+    geometry_msgs::TransformStamped odom_tf;
+    odom_tf.header.frame_id = "odom";
+    odom_tf.child_frame_id = "base_link";
 
     // Control loop rate to be 10 Hz, max is ~20
     ros::Rate loop_rate(10);
@@ -189,6 +193,14 @@ int main(int argc, char **argv) {
         //drop_interface.set_msg(drop_status_msg);
         //grabber_interface.set_msg(grabber_status_msg);
         navigation_interface.set_msg(odometry_msg);
+
+        // Send tf transform
+        odom_tf.header.stamp = ros::Time::now();
+        odom_tf.transform.translation.x = odometry_msg.pose.pose.position.x;
+        odom_tf.transform.translation.y = odometry_msg.pose.pose.position.y;
+        odom_tf.transform.translation.z = odometry_msg.pose.pose.position.z;
+        odom_tf.transform.rotation = odometry_msg.pose.pose.orientation;
+        odom_broadcaster.sendTransform(odom_tf);
 
         // Keep update frequency
         loop_rate.sleep();
