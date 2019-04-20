@@ -185,20 +185,22 @@ int main(int argc, char **argv) {
         wheel_vel_to_odom(current_pos, current_angle, wheel_vel_msg);
         odometry_msg = current_pos;
 
+        odometry_msg.header.stamp = ros::Time::now();
+        odom_tf.header.stamp = odometry_msg.header.stamp();
+
+        // Send tf transform
+        odom_tf.transform.translation.x = odometry_msg.pose.pose.position.x;
+        odom_tf.transform.translation.y = odometry_msg.pose.pose.position.y;
+        odom_tf.transform.translation.z = odometry_msg.pose.pose.position.z;
+        odom_tf.transform.rotation = odometry_msg.pose.pose.orientation;
+        odom_broadcaster.sendTransform(odom_tf);
+
         // Assume velocities are in a variable called drive_motor_msg
 
         // messages taken from embed/arduino to be sent to nodes
         //drop_interface.set_msg(drop_status_msg);
         //grabber_interface.set_msg(grabber_status_msg);
         navigation_interface.set_msg(odometry_msg);
-
-        // Send tf transform
-        odom_tf.header.stamp = ros::Time::now();
-        odom_tf.transform.translation.x = odometry_msg.pose.pose.position.x;
-        odom_tf.transform.translation.y = odometry_msg.pose.pose.position.y;
-        odom_tf.transform.translation.z = odometry_msg.pose.pose.position.z;
-        odom_tf.transform.rotation = odometry_msg.pose.pose.orientation;
-        odom_broadcaster.sendTransform(odom_tf);
 
         // Keep update frequency
         loop_rate.sleep();
