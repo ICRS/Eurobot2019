@@ -3,3 +3,6 @@ devel/*
 *.pyc
 
 *.swp
+frames.*
+
+src/CMakeLists.txt

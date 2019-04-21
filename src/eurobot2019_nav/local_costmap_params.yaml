@@ -1,0 +1,14 @@
+local_costmap:
+    global_frame: odom
+    robot_base_frame: base_link
+    update_frequency: 5.0
+    publish_frequency: 2.0
+# Map will be generated as the robot moves
+    static_map: false
+# Remain centered on the robot
+    rolling_window: true
+# 1m square about the center of the robot
+    width: 1
+    height: 1
+# 5cm grid resolution
+    resolution: 0.05

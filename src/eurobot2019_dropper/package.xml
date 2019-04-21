@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>eurobot2019_dropper</name>
+  <version>0.0.0</version>
+  <description>The eurobot2019_dropper package</description>
+
+  <maintainer email="nickick@todo.todo">nickick</maintainer>
+
+  <license>TODO</license>
+
+
+  <depend>roscpp</depend>
+  <depend>eurobot2019_messages</depend>
+  <buildtool_depend>catkin</buildtool_depend>
+
+</package>
