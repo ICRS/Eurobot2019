@@ -11,10 +11,8 @@ find_package(catkin REQUIRED COMPONENTS
 # Generate messages in the 'msg' folder
 add_message_files(
   FILES
-  drop_command.msg
   drop_motors.msg
   grabber_motors.msg
-  pickup.msg
 )
 
 ## Generate services in the 'srv' folder

@@ -11,14 +11,18 @@
         <param name="angle_max" value="1.5707963"/>
     </node>
 
-    <node pkg="eurobot2019_tf" type="broadcaster.py" name="transforms" output="screen"/>
+    <!-- TF transforms -->
+    <!-- X Y Z YAW PITCH ROLL FRAME CHILD_FRAME -->
+    <node pkg="tf2_ros" type="static_transform_publisher"
+          name="laser_link_publisher"
+          args="-0.2 0 0 3.1415926 0 0 base_link laser"/>
 
     <!-- Run the map server -->
     <node name="map_server" pkg="map_server" type="map_server" 
           args="$(find eurobot2019_nav)/map_params.yaml"/>
 
     <!-- Run AMCL -->
-    <include file="$(find eurobot2019_nav)/launch/amcl.launch"/>
+<!--    <include file="$(find eurobot2019_nav)/launch/amcl.launch"/> -->
 
     <!-- Run move_base -->
     <node pkg="move_base" type="move_base" respawn="false" name="move_base"

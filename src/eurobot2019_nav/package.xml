@@ -25,6 +25,7 @@
   <exec_depend>eurobot2019_tf</exec_depend>
   <exec_depend>move_base</exec_depend>
   <exec_depend>urg_node</exec_depend>
+  <exec_depend>map_server</exec_depend>
 
   <depend>amcl</depend>
 
