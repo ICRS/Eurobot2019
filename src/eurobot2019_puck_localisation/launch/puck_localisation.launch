@@ -1,0 +1,14 @@
+
+<launch>
+  <!-- camera driver -->
+  <node pkg="usb_cam" type ="usb_cam_node" name="camera" output="log" respawn="true">
+  <!-- camera should be plugged in first to be video0 -->
+  <param name="video_device" value="/dev/video0"/>
+  <param name="framerate" value="30"/>
+  <!-- camera callibration file location -->
+  <param name="camera_info_url"
+         value="file://$(find eurobot2019_puck_localisation)/camera/camera_callibration.ini"/>
+  <param name="camera_name" value="camera"/>
+  </node>
+  <node pkg="eurobot2019_puck_localisation" type="node" name="puck_localisation" respawn="true" output="log"/> 
+</launch>
