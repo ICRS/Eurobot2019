@@ -186,7 +186,7 @@ int main(int argc, char **argv) {
         odometry_msg = current_pos;
 
         odometry_msg.header.stamp = ros::Time::now();
-        odom_tf.header.stamp = odometry_msg.header.stamp();
+        odom_tf.header.stamp = odometry_msg.header.stamp;
 
         // Send tf transform
         odom_tf.transform.translation.x = odometry_msg.pose.pose.position.x;
