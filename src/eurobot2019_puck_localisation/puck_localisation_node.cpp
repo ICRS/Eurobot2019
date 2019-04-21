@@ -9,7 +9,7 @@
 
 static const std::string OPENCV_WINDOW = "Image window";
 
-class colour_detection
+class puck_localisation
 {
     ros::NodeHandle nh_;
     cv::Matx33f camera_intrinsic;
@@ -18,16 +18,16 @@ class colour_detection
     image_transport::Publisher pub_;
 
 public:
-    colour_detection():it_(nh_){
+    puck_localisation():it_(nh_){
         // Subscribe to input video and publish to output video
         sub_=it_.subscribe("/camera/image_raw",1,
-                &colour_detection::image_callback, this);
-        pub_=it_.advertise("/colour_detection/output_video",1);
+                &puck_localisation::image_callback, this);
+        pub_=it_.advertise("/puck_localisation/output_video",1);
 
         cv::namedWindow(OPENCV_WINDOW);
     }
 
-    ~colour_detection(){
+    ~puck_localisation(){
         cv::destroyWindow(OPENCV_WINDOW);
     }
 
@@ -77,8 +77,8 @@ public:
 
 int main(int argc, char** argv)
 {
-    ros::init(argc, argv, "colour_detection");
-    colour_detection cd;
+    ros::init(argc, argv, "puck_localisation");
+    puck_localisation pl;
     ros::spin();
     return 0;
 }
