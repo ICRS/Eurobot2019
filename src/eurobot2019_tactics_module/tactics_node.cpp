@@ -36,6 +36,10 @@ int main(int argc, char **argv) {
     //To get position
     //Transform from base_link to map
     tf::TransformListener listener;
+    geometry_msgs::TransformStamped transform;
+
+    listener.lookupTransform("/base_link", "/map",
+                               ros::Time(0), transform);
 
     // Create interface to the pickup node
     MessageInterface<eurobot2019_messages::pickup, std_msgs::Int32>
