@@ -5,7 +5,11 @@
 #include <image_transport/image_transport.h>
 #include <sensor_msgs/CameraInfo.h>
 #include <sensor_msgs/image_encodings.h>
+#include <stdio.h>
 #include <cv_bridge/cv_bridge.h>
+
+using namespace cv;
+using namespace std;
 
 static const std::string OPENCV_WINDOW = "Image window";
 
@@ -45,9 +49,25 @@ public:
             return;
         }
 
-        // Draw something on the video stream
-        if (cv_ptr->image.rows > 60 && cv_ptr->image.cols > 60)
-            cv::circle(cv_ptr->image, cv::Point(50,50), 10, CV_RGB(255,0,0));
+        // detect circles
+        if (cv_ptr->image.rows > 60 && cv_ptr->image.cols > 60){
+            cv::Mat gray_im;
+            cv::cvtColor(cv_ptr->image, gray_im, CV_BGR2GRAY);
+            // gaussian blur to reduce noise
+            cv::GaussianBlur(gray_im, gray_im, cv::Size(9,9),2,2);
+            vector<Vec3f> circles;
+            // hough transform to find the circles
+            cv::HoughCircles(gray_im, circles, CV_HOUGH_GRADIENT,1,30,200,100,0,0);
+        for( size_t i = 0; i < circles.size(); i++ ){   
+            Point center(cvRound(circles[i][0]), cvRound(circles[i][1]));
+            int radius = cvRound(circles[i][2]);
+            // circle center
+            cv::circle(cv_ptr->image, center, 3, cv::Scalar(0,255,0), -1, 8, 0 );
+            // circle outline
+            cv::circle(cv_ptr->image, center, radius, cv::Scalar(0,0,255), 3, 8, 0 );
+        }
+ }
+//            cv::circle(cv_ptr->image, cv::Point(50,50), 10, CV_RGB(255,0,0));
 
         // Update GUI Window
         cv::imshow(OPENCV_WINDOW, cv_ptr->image);

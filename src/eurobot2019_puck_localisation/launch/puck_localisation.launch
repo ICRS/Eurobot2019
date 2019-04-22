@@ -10,5 +10,6 @@
          value="file://$(find eurobot2019_puck_localisation)/camera/camera_callibration.ini"/>
   <param name="camera_name" value="camera"/>
   </node>
-  <node pkg="eurobot2019_puck_localisation" type="node" name="puck_localisation" respawn="true" output="log"/> 
+  <node pkg="eurobot2019_puck_localisation" type="node" name="puck_localisation" respawn="true" output="log"/>
+  
 </launch>
