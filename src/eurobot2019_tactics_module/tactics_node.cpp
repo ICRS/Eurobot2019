@@ -46,6 +46,7 @@
                 //double x = (i - base_link_pixel_y) * resolution;
                 //yaw
                 //run function to ignore things
+                // returns vector of values
             }
         }
     }
@@ -60,6 +61,107 @@
 
 // CODE BLOCK ENDS HERE
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////
+//THIS CODE BLOCK IS OUT OF PLACE, SHOULD BE USED TO AVOID COLLISIONS
+
+// assume object of type eurobot2019_messages::collision_avoidance (array of bools), called collision_avoidance
+// assume also vector of array elements that correspond with a wall, called wall_vector
+
+bool blocked_by_non_wall = false;
+std::vector<int> blocked_directions;
+blocked_directions.push_back(15);
+
+for(int i = 0, j = 0; i < 8; i++){
+  if (i == wall_vector[j]){
+    blocked_directions.push_back(i);
+
+    if (j < wall_vector.size()){
+      j++;
+    }
+  }
+
+  else{
+    if(collision_avoidance[i]){
+      blocked_by_non_wall = true;
+      blocked_directions.push_back(i);
+    }
+  }
+}
+
+if(blocked_by_non_wall){
+  //ignore directions between two blocked_directions, unless super close
+  std::vector<double> scores;
+  std::vector<int> directions;
+
+  for(int i = 0, j = 0, r = 0; i < 8; i++){
+    if(i == blocked_directions[j + 1]){
+      if (j < blocked_directions.size() - 1){
+        j++;
+        r++;
+      }
+    }
+
+    else{
+      if(i == 0){
+        if(blocked_directions[1] == 1 && blocked_directions[blocked_directions.size()] == 7){
+          //find distance/direction and rest of score
+          //If not, abandon
+        }
+
+
+        else if(blocked_directions[1] == 1 || blocked_directions[blocked_directions.size()] == 7){
+          //adjust score accordingly
+        }
+
+        else{
+          //none of them are, no score penalty
+          //find rest of score, i.e. space(distance to closest occupied point in direction), angle from goal
+        }
+      }
+
+      if(i == 7){
+        if(blocked_directions[1] == 0 && blocked_directions[blocked_directions.size()] == 6){
+          //find distance/direction and score
+          //If not, abandon
+        }
+
+
+        if(blocked_directions[1] == 0 || blocked_directions[blocked_directions.size()] == 6){
+          //adjust score accordingly
+        }
+
+        else{
+          //none of them are, no score penalty
+          //find rest of score, i.e. space(distance to closest occupied point in direction), angle from goal
+        }
+      }
+
+      else{
+        if(blocked_directions[r] == i - 1 && blocked_directions[r + 1] == i + 1){
+          //find distance/direction and score
+          //If not, abandon
+        }
+
+        if(blocked_directions[r] == i - 1 || blocked_directions[r + 1] == i + 1){
+          //adjust score accordingly
+        }
+
+        else{
+          //none of them are, no score penalty
+          //find rest of score, i.e. space(distance to closest occupied point in direction), angle from goal
+        }
+      }
+    }
+  }
+}
+
+
+
+
+// CODE BLOCK ENDS HERE
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 
 
 
@@ -279,7 +381,7 @@ int main(int argc, char **argv) {
 
 
 //A function that suppresses the collision avoidance on the wall, x,y are the occupied cell's relative position to the centre of the robot.
-int wallignore(double yaw, double x, double y) {
+int wallignore(double yaw, double x, double y, std::vector<char>& v) {
   //Calculate the anticlockwise angle of the point's position vector to positive x-axis.
   double alpha = atan2( y, x );
   //Calcu;ate the angle (clockwise is positive) between yaw and the point's position vector.
