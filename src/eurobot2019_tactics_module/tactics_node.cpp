@@ -80,7 +80,7 @@
 #include <move_base_msgs/MoveBaseAction.h>
 #inclde "geometry_msgs/PoseStamped"
 #include <actionlib/client/simple_action_client.h>
-
+#include <cmath>
 #include "message_interface.hpp"
 
 typedef actionlib::SimpleActionClient<move_base_msgs::MoveBaseAction> MoveBaseClient;
@@ -275,6 +275,39 @@ int main(int argc, char **argv) {
 
         sleeper.sleep();
     }
+}
+
+
+//A function that suppresses the collision avoidance on the wall, x,y are the occupied cell's relative position to the centre of the robot.
+int wallignore(double yaw, double x, double y) {
+  //Calculate the anticlockwise angle of the point's position vector to positive x-axis.
+  double alpha = atan2( y, x );
+  //Calcu;ate the angle (clockwise is positive) between yaw and the point's position vector.
+  double angler2w = yaw - alpha + 1.5707963;
+  if ((-0.3926991 <= angler2w <= 0.3926991) || ((-0.3926991 + 3.1415926*2) <= angler2w <= (0.3926991 + 3.1415926*2))){
+    // Suppress collision_avoidance[0] // Assume 0 is the ultrasound sensor in the front of the robot, and the order increases in clockwise direction
+  }
+  if ((-1.1780972 <= angler2w <= -0.3926991) || ((-1.1780972 + 3.1415926*2) <= angler2w <= (-0.3926991 + 3.1415926*2))){
+    // Suppress collision_avoidance[7]
+  }
+  if ((-1.9634954 <= angler2w <= -1.1780972) || ((-1.9634954 + 3.1415926*2) <= angler2w <= (-1.1780972 + 3.1415926*2))){
+    // Suppress collision_avoidance[6]
+  }
+  if ((-2.7488936 <= angler2w <= -1.9634954) || ((-2.7488936 + 3.1415926*2) <= angler2w <= (-1.9634954 + 3.1415926*2))){
+    // Suppress collision_avoidance[5]
+  }
+  if ((-3.5342917 <= angler2w <= -2.7488936) || ((-3.5342917 + 3.1415926*2) <= angler2w <= (-2.7488936 + 3.1415926*2))){
+    // Suppress collision_avoidance[4]
+  }
+  if ((-4.3196899 <= angler2w <= -3.5342917) || ((-4.3196899 + 3.1415926*2) <= angler2w <= (-3.5342917 + 3.1415926*2))){
+    // Suppress collision_avoidance[3]
+  }
+  if ((-4.7123890 <= angler2w <= -4.3196899) || ((-5.1050881 + 3.1415926*2) <= angler2w <= (-4.3196899 + 3.1415926*2)) || ((-5.1050881 + 3.1415926*4) <= angler2w <= (7.8539817))){
+    // Suppress collision_avoidance[2] // From the calculation, the range of the angler2w is between -3pi/2 to 5pi/2
+  }
+  if ((0.3926991 <= angler2w <= (-5.1050881 + 3.1415926*2)) || ((0.3926991 + 3.1415926*2) <= angler2w <= (-5.1050881 + 3.1415926*4))){
+    // Suppress collision_avoidance[1]
+  }
 }
 
 Quaterniond toQuaternion(double yaw, double pitch, double roll) // yaw (Z), pitch (Y), roll (X)
