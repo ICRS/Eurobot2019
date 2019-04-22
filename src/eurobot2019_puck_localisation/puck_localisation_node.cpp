@@ -20,7 +20,33 @@ class puck_localisation
     image_transport::ImageTransport it_;
     image_transport::Subscriber sub_;
     image_transport::Publisher pub_;
-
+    double redParams[6];
+    {
+        nh_.getParam("puck_localisation/redLowH",redParams[0]);
+        nh_.getParam("puck_localisation/redHighH",redParams[1]);
+        nh_.getParam("puck_localisation/redLowS",redParams[2]);
+        nh_.getParam("puck_localisation/redHighS",redParams[3]);
+        nh_.getParam("puck_localisation/redLowV",redParams[4]);
+        nh_.getParam("puck_localisation/redHighV",redParams[5]);
+    }
+    double blueParams[6];
+    {
+        nh_.getParam("puck_localisation/blueLowH",blueParams[0]);
+        nh_.getParam("puck_localisation/blueHighH",blueParams[1]);
+        nh_.getParam("puck_localisation/blueLowS",blueParams[2]);
+        nh_.getParam("puck_localisation/blueHighS",blueParams[3]);
+        nh_.getParam("puck_localisation/blueLowV",blueParams[4]);
+        nh_.getParam("puck_localisation/blueHighV",blueParams[5]);
+    }
+    double greenParams[6];
+    {
+        nh_.getParam("puck_localisation/greenLowH",greenParams[0]);
+        nh_.getParam("puck_localisation/greenHighH",greenParams[1]);
+        nh_.getParam("puck_localisation/greenLowS",greenParams[2]);
+        nh_.getParam("puck_localisation/greenHighS",greenParams[3]);
+        nh_.getParam("puck_localisation/greenLowV",greenParams[4]);
+        nh_.getParam("puck_localisation/greenHighV",greenParams[5]);
+    }
 public:
     puck_localisation():it_(nh_){
         // Subscribe to input video and publish to output video
@@ -49,28 +75,29 @@ public:
             return;
         }
 
-        // detect circles
+        cv::Mat gray_im;
+        // detect ellipse
         if (cv_ptr->image.rows > 60 && cv_ptr->image.cols > 60){
-            cv::Mat gray_im;
             cv::cvtColor(cv_ptr->image, gray_im, CV_BGR2GRAY);
             // gaussian blur to reduce noise
             cv::GaussianBlur(gray_im, gray_im, cv::Size(9,9),2,2);
             vector<Vec3f> circles;
             // hough transform to find the circles
-            cv::HoughCircles(gray_im, circles, CV_HOUGH_GRADIENT,1,30,200,100,0,0);
-        for( size_t i = 0; i < circles.size(); i++ ){   
-            Point center(cvRound(circles[i][0]), cvRound(circles[i][1]));
-            int radius = cvRound(circles[i][2]);
-            // circle center
-            cv::circle(cv_ptr->image, center, 3, cv::Scalar(0,255,0), -1, 8, 0 );
-            // circle outline
-            cv::circle(cv_ptr->image, center, radius, cv::Scalar(0,0,255), 3, 8, 0 );
+            cv::HoughCircles(gray_im, circles, CV_HOUGH_GRADIENT,1,30,90,40,0,0);
+            for( size_t i = 0; i < circles.size(); i++ ){   
+                Point center(cvRound(circles[i][0]), cvRound(circles[i][1]));
+                int radius = cvRound(circles[i][2]);
+                // circle center
+                cv::circle(cv_ptr->image, center, 3, cv::Scalar(0,255,0), -1, 8, 0 );
+                // circle outline
+                cv::circle(cv_ptr->image, center, radius, cv::Scalar(0,0,255), 3, 8, 0 );
+            }
         }
- }
-//            cv::circle(cv_ptr->image, cv::Point(50,50), 10, CV_RGB(255,0,0));
+
 
         // Update GUI Window
         cv::imshow(OPENCV_WINDOW, cv_ptr->image);
+        cv::imshow("gray scale",gray_im);
         cv::waitKey(3);
 
         //Output modified video stream

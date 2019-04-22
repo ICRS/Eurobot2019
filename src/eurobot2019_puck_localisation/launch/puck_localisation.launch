@@ -10,6 +10,24 @@
          value="file://$(find eurobot2019_puck_localisation)/camera/camera_callibration.ini"/>
   <param name="camera_name" value="camera"/>
   </node>
-  <node pkg="eurobot2019_puck_localisation" type="node" name="puck_localisation" respawn="true" output="log"/>
-  
+  <node pkg="eurobot2019_puck_localisation" type="node" name="puck_localisation" respawn="true" output="log">
+  <param name="redLowH" value="167">
+  <param name="redHighH" value="179">
+  <param name="redLowS" value="119">
+  <param name="redHighS" value="159">
+  <param name="redLowV" value="99">
+  <param name="redHighV" value="122">
+  <param name="bluelowH" value="97">
+  <param name="blueHighH" value="107">
+  <param name="blueLowS" value="148">
+  <param name="blueHighS" value="216">
+  <param name="blueLowV" value="100">
+  <param name="blueHighV" value="138">
+  <param name="greenLowH" value="60">
+  <param name="greenHighH" value="80">
+  <param name="greenLowS" value="114">
+  <param name="greenHighS" value="177">
+  <param name="greenLowV" value="108">
+  <param name="greenHighV" value="135">
+  </node>
 </launch>
