@@ -39,6 +39,19 @@ void I2C::read(I2CMessageType target, unsigned short len, char* buf) {
     if(len == 8){
         memcpy(buf, error_check_drive_, 8);
     }
-    i2cReadDevice(handles_[target], buf, len);
+    switch(i2cReadDevice(handles_[target], buf, len)) {
+    case PI_BAD_HANDLE:
+        std::cout << "\033[31mBad Handle\033[0m" << std::endl;
+        break;
+    case PI_BAD_PARAM:
+        std::cout << "\033[31mBad Param\033[0m" << std::endl;
+        break;
+    case PI_I2C_READ_FAILED:
+        std::cout << "\033[31mRead Failed\033[0m" << std::endl;
+        break;
+    default:
+        std::cout << "\033[32mNo Problem\033[0m" << std::endl;
+        break;
+    }
 #endif // __PC_TEST__
 }
