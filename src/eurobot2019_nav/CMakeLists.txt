@@ -181,6 +181,7 @@ include_directories(
 # Mark other files for installation (e.g. launch and bag files, etc.)
 install(FILES
   maps/eurobot_map.png
+  maps/eurobot_map_icrs.png
   FILES_MATCHING PATTERN "*.yaml"
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
 )
