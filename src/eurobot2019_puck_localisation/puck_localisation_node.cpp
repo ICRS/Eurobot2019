@@ -21,32 +21,8 @@ class puck_localisation
     image_transport::Subscriber sub_;
     image_transport::Publisher pub_;
     double redParams[6];
-    {
-        nh_.getParam("puck_localisation/redLowH",redParams[0]);
-        nh_.getParam("puck_localisation/redHighH",redParams[1]);
-        nh_.getParam("puck_localisation/redLowS",redParams[2]);
-        nh_.getParam("puck_localisation/redHighS",redParams[3]);
-        nh_.getParam("puck_localisation/redLowV",redParams[4]);
-        nh_.getParam("puck_localisation/redHighV",redParams[5]);
-    }
     double blueParams[6];
-    {
-        nh_.getParam("puck_localisation/blueLowH",blueParams[0]);
-        nh_.getParam("puck_localisation/blueHighH",blueParams[1]);
-        nh_.getParam("puck_localisation/blueLowS",blueParams[2]);
-        nh_.getParam("puck_localisation/blueHighS",blueParams[3]);
-        nh_.getParam("puck_localisation/blueLowV",blueParams[4]);
-        nh_.getParam("puck_localisation/blueHighV",blueParams[5]);
-    }
     double greenParams[6];
-    {
-        nh_.getParam("puck_localisation/greenLowH",greenParams[0]);
-        nh_.getParam("puck_localisation/greenHighH",greenParams[1]);
-        nh_.getParam("puck_localisation/greenLowS",greenParams[2]);
-        nh_.getParam("puck_localisation/greenHighS",greenParams[3]);
-        nh_.getParam("puck_localisation/greenLowV",greenParams[4]);
-        nh_.getParam("puck_localisation/greenHighV",greenParams[5]);
-    }
 public:
     puck_localisation():it_(nh_){
         // Subscribe to input video and publish to output video
@@ -54,6 +30,25 @@ public:
                 &puck_localisation::image_callback, this);
         pub_=it_.advertise("/puck_localisation/output_video",1);
 
+        nh_.getParam("puck_localisation/redLowH",redParams[0]);
+        nh_.getParam("puck_localisation/redHighH",redParams[1]);
+        nh_.getParam("puck_localisation/redLowS",redParams[2]);
+        nh_.getParam("puck_localisation/redHighS",redParams[3]);
+        nh_.getParam("puck_localisation/redLowV",redParams[4]);
+        nh_.getParam("puck_localisation/redHighV",redParams[5]);
+        nh_.getParam("puck_localisation/blueLowH",blueParams[0]);
+        nh_.getParam("puck_localisation/blueHighH",blueParams[1]);
+        nh_.getParam("puck_localisation/blueLowS",blueParams[2]);
+        nh_.getParam("puck_localisation/blueHighS",blueParams[3]);
+        nh_.getParam("puck_localisation/blueLowV",blueParams[4]);
+        nh_.getParam("puck_localisation/blueHighV",blueParams[5]);
+        nh_.getParam("puck_localisation/greenLowH",greenParams[0]);
+        nh_.getParam("puck_localisation/greenHighH",greenParams[1]);
+        nh_.getParam("puck_localisation/greenLowS",greenParams[2]);
+        nh_.getParam("puck_localisation/greenHighS",greenParams[3]);
+        nh_.getParam("puck_localisation/greenLowV",greenParams[4]);
+        nh_.getParam("puck_localisation/greenHighV",greenParams[5]);
+    
         cv::namedWindow(OPENCV_WINDOW);
     }
 
@@ -75,29 +70,84 @@ public:
             return;
         }
 
-        cv::Mat gray_im;
-        // detect ellipse
+        Mat imgHSV, redThreshold, blueThreshold, greenThreshold;
+        // detect pucks
         if (cv_ptr->image.rows > 60 && cv_ptr->image.cols > 60){
-            cv::cvtColor(cv_ptr->image, gray_im, CV_BGR2GRAY);
-            // gaussian blur to reduce noise
-            cv::GaussianBlur(gray_im, gray_im, cv::Size(9,9),2,2);
-            vector<Vec3f> circles;
+            cv::cvtColor(cv_ptr->image, imgHSV, CV_BGR2HSV);
+
+            inRange(imgHSV, Scalar(redParams[0], redParams[2], redParams[4]), 
+                    Scalar(redParams[1], redParams[3], redParams[5]),redThreshold);
+            //morphological opening (removes small objects from the foreground)
+            erode(redThreshold, redThreshold, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)) );
+            dilate(redThreshold, redThreshold, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)) );
+            //morphological closing (removes small holes from the foreground)
+            dilate(redThreshold, redThreshold, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)) );
+            erode(redThreshold, redThreshold, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)) );
+
+            inRange(imgHSV, Scalar(blueParams[0], blueParams[2], blueParams[4]), 
+                    Scalar(blueParams[1], blueParams[3], blueParams[5]),blueThreshold);
+            //morphological opening (removes small objects from the foreground)
+            erode(blueThreshold, blueThreshold, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)) );
+            dilate(blueThreshold, blueThreshold, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)) );
+            //morphological closing (removes small holes from the foreground)
+            dilate(blueThreshold, blueThreshold, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)) );
+            erode(blueThreshold, blueThreshold, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)) );
+
+            inRange(imgHSV, Scalar(greenParams[0], greenParams[2], greenParams[4]), 
+                    Scalar(greenParams[1], greenParams[3], greenParams[5]),greenThreshold);
+            //morphological opening (removes small objects from the foreground)
+            erode(greenThreshold, greenThreshold, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)) );
+            dilate(greenThreshold, greenThreshold, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)) );
+            //morphological closing (removes small holes from the foreground)
+            dilate(greenThreshold, greenThreshold, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)) );
+            erode(greenThreshold, greenThreshold, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)) );
+
+            vector<Vec3f> redPucks;
+            GaussianBlur(redThreshold,redThreshold,Size(9,9),2,2);
             // hough transform to find the circles
-            cv::HoughCircles(gray_im, circles, CV_HOUGH_GRADIENT,1,30,90,40,0,0);
-            for( size_t i = 0; i < circles.size(); i++ ){   
-                Point center(cvRound(circles[i][0]), cvRound(circles[i][1]));
-                int radius = cvRound(circles[i][2]);
+            cv::HoughCircles(redThreshold, redPucks, CV_HOUGH_GRADIENT,1,100,100,30,0,0);
+            for( size_t i = 0; i < redPucks.size(); i++ ){   
+                Point center(cvRound(redPucks[i][0]), cvRound(redPucks[i][1]));
+                int radius = cvRound(redPucks[i][2]);
                 // circle center
                 cv::circle(cv_ptr->image, center, 3, cv::Scalar(0,255,0), -1, 8, 0 );
                 // circle outline
                 cv::circle(cv_ptr->image, center, radius, cv::Scalar(0,0,255), 3, 8, 0 );
+                cout<<"found " << redPucks.size() <<" red puck!" << endl;
+            }
+
+            vector<Vec3f> bluePucks;
+            GaussianBlur(blueThreshold,blueThreshold,Size(9,9),2,2);
+            // hough transform to find the circles
+            cv::HoughCircles(blueThreshold, bluePucks, CV_HOUGH_GRADIENT,1,100,100,30,0,0);
+            for( size_t i = 0; i < bluePucks.size(); i++ ){   
+                Point center(cvRound(bluePucks[i][0]), cvRound(bluePucks[i][1]));
+                int radius = cvRound(bluePucks[i][2]);
+                // circle center
+                cv::circle(cv_ptr->image, center, 3, cv::Scalar(0,255,0), -1, 8, 0 );
+                // circle outline
+                cv::circle(cv_ptr->image, center, radius, cv::Scalar(0,0,255), 3, 8, 0 );
+                cout<<"found " << bluePucks.size() <<" blue puck!" << endl;
+            }
+
+            vector<Vec3f> greenPucks;
+            GaussianBlur(greenThreshold,greenThreshold,Size(9,9),2,2);
+            // hough transform to find the circles
+            cv::HoughCircles(greenThreshold, greenPucks, CV_HOUGH_GRADIENT,1,100,100,30,0,0);
+            for( size_t i = 0; i < greenPucks.size(); i++ ){   
+                Point center(cvRound(greenPucks[i][0]), cvRound(greenPucks[i][1]));
+                int radius = cvRound(greenPucks[i][2]);
+                // circle center
+                cv::circle(cv_ptr->image, center, 3, cv::Scalar(0,255,0), -1, 8, 0 );
+                // circle outline
+                cv::circle(cv_ptr->image, center, radius, cv::Scalar(0,0,255), 3, 8, 0 );
+                cout<<"found " << greenPucks.size() <<" green puck!" << endl;
             }
         }
 
 
         // Update GUI Window
         cv::imshow(OPENCV_WINDOW, cv_ptr->image);
-        cv::imshow("gray scale",gray_im);
         cv::waitKey(3);
 
         //Output modified video stream
@@ -119,6 +169,10 @@ public:
         camera_intrinsic(0,2) = msg->K[2];
         camera_intrinsic(1,1) = msg->K[4];
         camera_intrinsic(1,2) = msg->K[5];
+    }
+
+    void find_position(float u, float v, float z_w) {
+        
     }
 };
 
