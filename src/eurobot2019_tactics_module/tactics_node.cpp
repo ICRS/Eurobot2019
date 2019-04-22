@@ -134,10 +134,6 @@ int main(int argc, char **argv) {
 */
 }
 
-static auto t1 = std::chrono::high_resolution_clock::now();
-auto t2 = std::chrono::high_resolution_clock::now();
-std::chrono::duration<double, std::milli> time_span = t2 - t1;
-
 Quaterniond toQuaternion(double yaw, double pitch, double roll) // yaw (Z), pitch (Y), roll (X)
 {
     // Abbreviations for the various angular functions
