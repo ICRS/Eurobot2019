@@ -3,6 +3,7 @@
 #include <eurobot2019_messages/grabber_motors.h>
 #include <eurobot2019_messages/pickup.h>
 #include <queue>
+#include <tf/transform_listener.h>
 #include "geometry_msgs/Twist.h"
 #include "nav_msgs/Odometry.h"
 #include <move_base_msgs/MoveBaseAction.h>
@@ -34,6 +35,7 @@ int main(int argc, char **argv) {
 
     //To get position
     //Transform from base_link to map
+    tf::TransformListener listener;
 
     // Create interface to the pickup node
     MessageInterface<eurobot2019_messages::pickup, std_msgs::Int32>
@@ -97,7 +99,7 @@ int main(int argc, char **argv) {
         while(pickup_interface.get_msg(motor_msg) > 0){
 
         }
-        
+
         pucks_taken++;
         // Send idle command
         // Set next goal + determine if should go to ramp
