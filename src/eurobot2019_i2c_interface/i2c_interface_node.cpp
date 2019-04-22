@@ -222,7 +222,7 @@ int main(int argc, char **argv) {
 void wheel_vel_to_odom(nav_msgs::Odometry& current_pos, double& current_angle, const std::vector<float>& wheel_vel_msg){
     static auto t1 = std::chrono::high_resolution_clock::now();
     auto t2 = std::chrono::high_resolution_clock::now();
-    std::chrono::duration<double, std::milli> time_span = t2 - t1;;
+    std::chrono::duration<double, std::milli> time_span = t2 - t1;
     t1 = t2;
 
     double linear_x = (wheel_vel_msg[0] + wheel_vel_msg[1] + wheel_vel_msg[2] + wheel_vel_msg[3])*(RADIUS/4.0)*6.2831852;

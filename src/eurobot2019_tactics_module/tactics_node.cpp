@@ -6,11 +6,19 @@
 #include "geometry_msgs/Twist.h"
 #include "nav_msgs/Odometry.h"
 #include <move_base_msgs/MoveBaseAction.h>
+#inclde "geometry_msgs/PoseStamped"
 #include <actionlib/client/simple_action_client.h>
 
 #include "message_interface.hpp"
 
 typedef actionlib::SimpleActionClient<move_base_msgs::MoveBaseAction> MoveBaseClient;
+
+struct Quaterniond{
+    double w;
+    double x;
+    double y;
+    double z;
+};
 
 // Function to check if floating point numbers are close enough
 bool approx_equal(float a, float b) {
@@ -24,14 +32,24 @@ int main(int argc, char **argv) {
     // Get node handle
     ros::NodeHandle nh;
 
+    //To get position
+    //Transform from base_link to map
+
     // Create interface to the pickup node
     MessageInterface<eurobot2019_messages::pickup, std_msgs::Int32>
-                command(10, "pickup_status", 10, "pickup");
+                pickup_interface(10, "pickup", 10, "pickup_status");
+
+    MessageInterface<eurobot2019_messages::drop_command, std_msgs::Int32>
+                drop_interface(10, "drop", 10, "drop_status_l");
+
+    MessageSubscriberInterface<std_msgs::Int32>
+                drop_status_right(10, "drop_status_r");
 
     //tell the action client that we want to spin a thread by default
     MoveBaseClient ac("move_base", true);
 
-    //Declare variable PoseStamped, from launch file (includes at least first 2 desired poses)
+    static auto total_time = std::chrono::high_resolution_clock::now();
+    int pucks_taken = 0;
 
     //wait for the action server to come up
     while(!ac.waitForServer(ros::Duration(5.0))){
@@ -40,28 +58,102 @@ int main(int argc, char **argv) {
 
     move_base_msgs::MoveBaseGoal goal;
 
-    //we'll send a goal to the robot to move 1 meter forward
+    //we'll send a goal to the robot to move 1 meter to the right
     goal.target_pose.header.frame_id = "base_link";
     goal.target_pose.header.stamp = ros::Time::now();
+    goal.target_pose.pose.position.y = -1.0;
 
-    //goal.target_pose.pose.position.x = 1.0;
-    //goal.target_pose.pose.orientation.w = 1.0;
-    //Set next target
+    while (ros::ok()){
+    //Set next target, has been set?
 
     ROS_INFO("Sending goal");
     ac.sendGoal(goal);
 
     ac.waitForResult();
 
-    if(ac.getState() == actionlib::SimpleClientGoalState::SUCCEEDED)
-        ROS_INFO("Hooray, acquired desired position and oreintation");
-    else
-        ROS_INFO("The base failed to move to next position and oreintation");
+    static auto t1 = std::chrono::high_resolution_clock::now();
+    bool has_moved_closer = true;
 
+    while(ac.getState() != actionlib::SimpleClientGoalState::SUCCEEDED || has_moved_closer) {//check collision avoidance also
+        if(distance < prev_distance){
+            prev_distance = distance;
+            static auto t1 = std::chrono::high_resolution_clock::now();
+        }
+
+        else {
+        auto t2 = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double, std::milli> time_span = t2 - t1;
+
+            if (time_span.count() > 1000){
+                has_moved_closer = false;
+            }
+        }
+    }
+
+    if (ac.getState() == actionlib::SimpleClientGoalState::SUCCEEDED){
+        ROS_INFO("Hooray, acquired desired position and orientation");
+        //Send pickup command
+
+        while(pickup_interface.get_msg(motor_msg) > 0){
+
+        }
+        
+        pucks_taken++;
+        // Send idle command
+        // Set next goal + determine if should go to ramp
+        auto t2 = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double, std::milli> time_span = total_time - t1;
+        if ((pucks_taken < 8 && time_span(count) > 90000) || pucks_taken >= 8){
+            //Set goal to ramp
+        }
+
+        else{
+            //Set goal next puck
+        }
+    }
+
+    else{
+        ROS_INFO("The base failed to move to next position and orientation");
+        //Set new goal
+    }
+}
+
+
+
+/*
     // 100 Hz update rate
     ros::Rate sleeper(100);
 
     while(ros::ok()) {
+        // Maintain 100 Hz
+        sleeper.sleep();
+    }
+
+*/
+}
+
+static auto t1 = std::chrono::high_resolution_clock::now();
+auto t2 = std::chrono::high_resolution_clock::now();
+std::chrono::duration<double, std::milli> time_span = t2 - t1;
+
+Quaterniond toQuaternion(double yaw, double pitch, double roll) // yaw (Z), pitch (Y), roll (X)
+{
+    // Abbreviations for the various angular functions
+    double cy = cos(yaw * 0.5);
+    double sy = sin(yaw * 0.5);
+    double cp = cos(pitch * 0.5);
+    double sp = sin(pitch * 0.5);
+    double cr = cos(roll * 0.5);
+    double sr = sin(roll * 0.5);
+
+    Quaterniond q;
+    q.w = cy * cp * cr + sy * sp * sr;
+    q.x = cy * cp * sr - sy * sp * cr;
+    q.y = sy * cp * sr + cy * sp * cr;
+    q.z = sy * cp * cr - cy * sp * sr;
+    return q;
+}
+
 
 
         /*Planned:
@@ -85,8 +177,3 @@ repeat
 After some point (time, position, pucks taken, e.t.c., e.g. If not 8 pucks by 90 seconds, head to ramp)
 	Set goal to ramp
 	Drop things*/
-
-        // Maintain 100 Hz
-        sleeper.sleep();
-    }
-}
