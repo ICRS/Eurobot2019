@@ -36,7 +36,42 @@ int main(int argc, char **argv) {
     //To get position
     //Transform from base_link to map
     tf::TransformListener listener;
-    geometry_msgs::TransformStamped transform;
+    tf::TransformStamped transform;
+
+/* function that returns current point
+    tf::StampedTransform transform;
+    try
+    {
+      listener.lookupTransform(/map, /base_link, ros::Time(0), transform);
+
+      // construct a pose message
+      geometry_msgs::PoseStamped pose_stamped;
+      pose_stamped.header.frame_id = map_frame;
+      pose_stamped.header.stamp = ros::Time::now();
+
+      pose_stamped.pose.orientation.x = transform.getRotation().getX();
+      pose_stamped.pose.orientation.y = transform.getRotation().getY();
+      pose_stamped.pose.orientation.z = transform.getRotation().getZ();
+      pose_stamped.pose.orientation.w = transform.getRotation().getW();
+
+      pose_stamped.pose.position.x = transform.getOrigin().getX();
+      pose_stamped.pose.position.y = transform.getOrigin().getY();
+      pose_stamped.pose.position.z = transform.getOrigin().getZ();
+
+      if(is_stamped)
+        p_pub.publish(pose_stamped);
+      else
+        p_pub.publish(pose_stamped.pose);
+    }
+    catch (tf::TransformException &ex)
+    {
+        ROS_ERROR("%s",ex.what());
+        ros::Duration(1.0).sleep();
+        continue;
+    }
+
+} */
+
 
     listener.lookupTransform("/base_link", "/map",
                                ros::Time(0), transform);
