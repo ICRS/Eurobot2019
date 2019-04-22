@@ -1,3 +1,6 @@
 [submodule "src/urg_node"]
 	path = src/urg_node
 	url = https://github.com/ros-drivers/urg_node.git
+[submodule "src/rosserial"]
+	path = src/rosserial
+	url = https://github.com/ros-drivers/rosserial.git
