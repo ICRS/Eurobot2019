@@ -1,3 +1,74 @@
+/////////////////////////////////////////////////////////////////////////////////////////////////////////
+//THIS CODE BLOCK IS OUT OF PLACE, SHOULD BE USED TO FOR COLLISION_AVOIDANCE, TO IGNORE WALLS
+// Might need to reconsider if pucks are taken to be occupied space
+    //relative to origin (edge of map), not (0,0) of map
+    double base_link_x = pose.pose.position.x - origin.position.x;
+    double base_link_y = pose.pose.position.y - origin.position.y;
+    int base_link_pixel_x = round((pose.pose.position.x - origin.position.x)/resolution);
+    int base_link_pixel_y = round((pose.pose.position.y - origin.position.y)/resolution);
+
+    if ( (base_link_y + collision_radius) > resolution * height){
+        int top = height
+    }
+
+    else{
+        int top = ceil((base_link_y + collision_radius)/resolution)
+    }
+
+    if ( (base_link_x + collision_radius) > resolution * width){
+        int right = width
+    }
+
+    else{
+        int right = ceil((base_link_x + collision_radius)/resolution)
+    }
+
+    if ( (base_link_x - collision_radius) < 0){
+        int left = 0
+    }
+
+    else{
+        int left = floor((base_link_x - collision_radius)/resolution)
+    }
+
+    if ( (base_link_y - collision_radius) < 0){
+        int bottom = 0
+    }
+
+    else{
+        int bottom = ceil((base_link_y - collision_radius)/resolution)
+    }
+
+    for(int j = bottom; j <= top; j++){
+        for(int i = left; i <= right; i++){
+            if(map.data[i + j * width] == 100){
+                //double y = (j - base_link_pixel_x) * resolution;
+                //double x = (i - base_link_pixel_y) * resolution;
+                //yaw
+                //run function to ignore things
+            }
+        }
+    }
+// CODE BLOCK ENDS HERE
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////
+//THIS CODE BLOCK IS OUT OF PLACE, SHOULD BE USED TO FIND A GOAL, GIVEN THE POSITION OF A PUCK
+
+
+
+// CODE BLOCK ENDS HERE
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+
+
+
+
+
+
 //Hardcoded VERSION
 #include <ros/ros.h>
 #include <eurobot2019_messages/grabber_motors.h>
@@ -26,6 +97,63 @@ bool approx_equal(float a, float b) {
     return fabs(a-b) < 1e-2;
 }
 
+std_msgs::Int32 drop_command_r;
+
+void sub_d_r_Callback(const std_msgs::Int32::ConstPtr& msg)
+{
+    ROS_INFO("sub_d_r_Callback returned drop_command: [%d, %d, %d]", msg->left, msg->right, msg->middle);
+    drop_command_r  = *msg;
+}
+
+bool got_map = false;
+bool got_map_metadata = false;
+nav_msgs::OccupancyGrid map;
+nav_msgs::MapMetaData map_metadata;
+
+void sub_map_Callback(const nav_msgs::OccupancyGrid::ConstPtr& msg)
+{
+    ROS_INFO("sub_map_metadeta_Callback returned map_metadeta");
+    map = *msg;
+    got_map = true;
+}
+
+void sub_map_metadeta_Callback(const nav_msgs::MapMetaData::ConstPtr& msg)
+{
+    ROS_INFO("sub_map_metadeta_Callback returned a map");
+    map_metadata = *msg;
+    got_map_metadata = true;
+}
+
+geometry_msgs::Pose get_robot_pos(tf::TransformListener& listener, double& yaw){
+    tf::StampedTransform transform;
+    try
+    {
+      listener.lookupTransform("/map", "/base_link", ros::Time(0), transform);
+
+      // construct a pose message
+      geometry_msgs::Pose pose;
+
+      pose.pose.orientation.x = transform.getRotation().getX();
+      pose.pose.orientation.y = transform.getRotation().getY();
+      pose.pose.orientation.z = transform.getRotation().getZ();
+      pose.pose.orientation.w = transform.getRotation().getW();
+
+      pose.pose.position.x = transform.getOrigin().getX();
+      pose.pose.position.y = transform.getOrigin().getY();
+      pose.pose.position.z = transform.getOrigin().getZ();
+
+      yaw = tf::getYaw(transform.getRotation());
+
+      return pose;
+    }
+    catch (tf::TransformException &ex)
+    {
+        ROS_ERROR("%s",ex.what());
+        //ros::Duration(1.0).sleep();
+        continue;
+    }
+}
+
 int main(int argc, char **argv) {
     // Initialise ROS
     ros::init(argc, argv, "tactics");
@@ -36,45 +164,6 @@ int main(int argc, char **argv) {
     //To get position
     //Transform from base_link to map
     tf::TransformListener listener;
-    tf::TransformStamped transform;
-
-/* function that returns current point
-    tf::StampedTransform transform;
-    try
-    {
-      listener.lookupTransform(/map, /base_link, ros::Time(0), transform);
-
-      // construct a pose message
-      geometry_msgs::PoseStamped pose_stamped;
-      pose_stamped.header.frame_id = map_frame;
-      pose_stamped.header.stamp = ros::Time::now();
-
-      pose_stamped.pose.orientation.x = transform.getRotation().getX();
-      pose_stamped.pose.orientation.y = transform.getRotation().getY();
-      pose_stamped.pose.orientation.z = transform.getRotation().getZ();
-      pose_stamped.pose.orientation.w = transform.getRotation().getW();
-
-      pose_stamped.pose.position.x = transform.getOrigin().getX();
-      pose_stamped.pose.position.y = transform.getOrigin().getY();
-      pose_stamped.pose.position.z = transform.getOrigin().getZ();
-
-      if(is_stamped)
-        p_pub.publish(pose_stamped);
-      else
-        p_pub.publish(pose_stamped.pose);
-    }
-    catch (tf::TransformException &ex)
-    {
-        ROS_ERROR("%s",ex.what());
-        ros::Duration(1.0).sleep();
-        continue;
-    }
-
-} */
-
-
-    listener.lookupTransform("/base_link", "/map",
-                               ros::Time(0), transform);
 
     // Create interface to the pickup node
     MessageInterface<eurobot2019_messages::pickup, std_msgs::Int32>
@@ -83,8 +172,26 @@ int main(int argc, char **argv) {
     MessageInterface<eurobot2019_messages::drop_command, std_msgs::Int32>
                 drop_interface(10, "drop", 10, "drop_status_l");
 
-    MessageSubscriberInterface<std_msgs::Int32>
-                drop_status_right(10, "drop_status_r");
+    ros::Subscriber sub_d_r = n.subscribe("drop_status_r", 10, sub_d_r_chatterCallback);
+    ros::Subscriber sub_map = n.subscribe("map", 1, sub_map_chatterCallback);
+    ros::Subscriber sub_map_metadeta = n.subscribe("map", 1, sub_map_metadeta_Callback);
+
+    do{
+        nh.spinOnce();
+    }while(!got_map && !got_map_metadata);
+
+    double resolution = map_metadata.resolution;
+    int width = map_metadata.width;
+    int height = map_metadata.height;
+    geometry_msg::Pose origin= map_metadeta.origin;
+
+    double collision_radius;
+    if(!nh->getParam("tactics/collision_radius",
+                     collision_radius)) {
+        ROS_ERROR("Failed to get param 'tactics/collision_radius'");
+    }
+
+    double yaw;
 
     //tell the action client that we want to spin a thread by default
     MoveBaseClient ac("move_base", true);
@@ -100,77 +207,74 @@ int main(int argc, char **argv) {
     move_base_msgs::MoveBaseGoal goal;
 
     //we'll send a goal to the robot to move 1 meter to the right
-    goal.target_pose.header.frame_id = "base_link";
+    goal.target_pose.header.frame_id = "/map";
     goal.target_pose.header.stamp = ros::Time::now();
-    goal.target_pose.pose.position.y = -1.0;
+    goal.target_pose.pose.position.y = -1.0; //it's not -1
+
+    ros::Rate sleeper(100);
 
     while (ros::ok()){
-    //Set next target, has been set?
+        //Set next target, has been set?
 
-    ROS_INFO("Sending goal");
-    ac.sendGoal(goal);
+        ROS_INFO("Sending goal");
+        ac.sendGoal(goal);
 
-    ac.waitForResult();
+        ac.waitForResult();
 
-    static auto t1 = std::chrono::high_resolution_clock::now();
-    bool has_moved_closer = true;
+        static auto t1 = std::chrono::high_resolution_clock::now();
+        bool has_moved_closer = true;
+        geometry_msgs::Pose pose = get_robot_pos(listener);
+        double distance = pow(pose.pose.position.x - goal.target_pose.pose.position.x, 2) + pow(pose.pose.position.y - goal.target_pose.pose.position.y, 2);
 
-    while(ac.getState() != actionlib::SimpleClientGoalState::SUCCEEDED || has_moved_closer) {//check collision avoidance also
-        if(distance < prev_distance){
-            prev_distance = distance;
-            static auto t1 = std::chrono::high_resolution_clock::now();
-        }
+        while(ac.getState() != actionlib::SimpleClientGoalState::SUCCEEDED || has_moved_closer) {//check collision avoidance also
+            tf::TransformStamped pose = get_robot_pos(listener);
+            double prev_distance = pow(pose.pose.position.x - goal.target_pose.pose.position.x, 2) + pow(pose.pose.position.y - goal.target_pose.pose.position.y, 2);
+            if(distance < prev_distance){
+                prev_distance = distance;
+                static auto t1 = std::chrono::high_resolution_clock::now();
+            }
 
-        else {
-        auto t2 = std::chrono::high_resolution_clock::now();
-        std::chrono::duration<double, std::milli> time_span = t2 - t1;
+            else {
+            auto t2 = std::chrono::high_resolution_clock::now();
+            std::chrono::duration<double, std::milli> time_span = t2 - t1;
 
-            if (time_span.count() > 1000){
-                has_moved_closer = false;
+                if (time_span.count() > 1000){
+                    has_moved_closer = false;
+                }
             }
         }
-    }
 
-    if (ac.getState() == actionlib::SimpleClientGoalState::SUCCEEDED){
-        ROS_INFO("Hooray, acquired desired position and orientation");
-        //Send pickup command
+        if (ac.getState() == actionlib::SimpleClientGoalState::SUCCEEDED){
+            ROS_INFO("Hooray, acquired desired position and orientation");
+            //Send pickup command
 
-        while(pickup_interface.get_msg(motor_msg) > 0){
+            while(pickup_interface.get_msg(motor_msg) > 0){
+                //nh.spinOnce();
+            }
 
-        }
+            pucks_taken++;
+            // Send idle command
+            // Set next goal + determine if should go to ramp
+            auto t2 = std::chrono::high_resolution_clock::now();
+            std::chrono::duration<double, std::milli> total_time_span = total_time - t1;
+            if ((pucks_taken < 8 && total_time_span.count()) > 90000) || pucks_taken >= 8){
+                //Set goal to ramp
+            }
 
-        pucks_taken++;
-        // Send idle command
-        // Set next goal + determine if should go to ramp
-        auto t2 = std::chrono::high_resolution_clock::now();
-        std::chrono::duration<double, std::milli> time_span = total_time - t1;
-        if ((pucks_taken < 8 && time_span(count) > 90000) || pucks_taken >= 8){
-            //Set goal to ramp
+            else{
+                //Set goal next puck
+            }
         }
 
         else{
-            //Set goal next puck
+            ROS_INFO("The base failed to move to next position and orientation");
+            //Set new goal
         }
-    }
 
-    else{
-        ROS_INFO("The base failed to move to next position and orientation");
-        //Set new goal
-    }
-}
+        nh.spinOnce();
 
-
-
-/*
-    // 100 Hz update rate
-    ros::Rate sleeper(100);
-
-    while(ros::ok()) {
-        // Maintain 100 Hz
         sleeper.sleep();
     }
-
-*/
 }
 
 Quaterniond toQuaternion(double yaw, double pitch, double roll) // yaw (Z), pitch (Y), roll (X)

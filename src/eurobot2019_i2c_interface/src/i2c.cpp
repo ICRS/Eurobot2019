@@ -8,7 +8,7 @@ I2C::I2C() {
     handles_[I2CMessageType::DRIVE] = i2cOpen(I2C_BUS, DRIVE_ADDR, 0);
     handles_[I2CMessageType::GRABBER] = i2cOpen(I2C_BUS, GRABBER_ADDR, 0);
     handles_[I2CMessageType::DROPPER] = i2cOpen(I2C_BUS, DROPPER_ADDR, 0);
-#endif // __PC_TEST__
+#endif // __arm__
 }
 
 I2C::~I2C() {
@@ -17,7 +17,7 @@ I2C::~I2C() {
     i2cClose(handles_[I2CMessageType::GRABBER]);
     i2cClose(handles_[I2CMessageType::DROPPER]);
     gpioTerminate();
-#endif // __PC_TEST__
+#endif // __arm__
 }
 
 void I2C::write(I2CMessageType target, std::string message) {
@@ -29,7 +29,7 @@ void I2C::write(I2CMessageType target, std::string message) {
     std::cout << target << std::endl;
 #else
     i2cWriteDevice(handles_[target], (char*) message.c_str(), message.size());
-#endif // __PC_TEST__
+#endif // __arm__
 }
 
 void I2C::read(I2CMessageType target, unsigned short len, char* buf) {
@@ -40,5 +40,5 @@ void I2C::read(I2CMessageType target, unsigned short len, char* buf) {
         memcpy(buf, error_check_drive_, 8);
     }
     i2cReadDevice(handles_[target], buf, len);
-#endif // __PC_TEST__
+#endif // __arm__
 }
