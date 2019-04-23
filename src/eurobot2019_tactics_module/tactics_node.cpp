@@ -1,60 +1,4 @@
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
-//THIS CODE BLOCK IS OUT OF PLACE, SHOULD BE USED TO FOR COLLISION_AVOIDANCE, TO IGNORE WALLS
-// Might need to reconsider if pucks are taken to be occupied space
-    //relative to origin (edge of map), not (0,0) of map
-    double base_link_x = pose.pose.position.x - origin.position.x;
-    double base_link_y = pose.pose.position.y - origin.position.y;
-    int base_link_pixel_x = round((pose.pose.position.x - origin.position.x)/resolution);
-    int base_link_pixel_y = round((pose.pose.position.y - origin.position.y)/resolution);
-
-    if ( (base_link_y + collision_radius) > resolution * height){
-        int top = height
-    }
-
-    else{
-        int top = ceil((base_link_y + collision_radius)/resolution)
-    }
-
-    if ( (base_link_x + collision_radius) > resolution * width){
-        int right = width
-    }
-
-    else{
-        int right = ceil((base_link_x + collision_radius)/resolution)
-    }
-
-    if ( (base_link_x - collision_radius) < 0){
-        int left = 0
-    }
-
-    else{
-        int left = floor((base_link_x - collision_radius)/resolution)
-    }
-
-    if ( (base_link_y - collision_radius) < 0){
-        int bottom = 0
-    }
-
-    else{
-        int bottom = ceil((base_link_y - collision_radius)/resolution)
-    }
-
-    for(int j = bottom; j <= top; j++){
-        for(int i = left; i <= right; i++){
-            if(map.data[i + j * width] == 100){
-                //double y = (j - base_link_pixel_x) * resolution;
-                //double x = (i - base_link_pixel_y) * resolution;
-                //yaw
-                //run function to ignore things, wallignore
-                // returns vector of values
-            }
-        }
-    }
-// CODE BLOCK ENDS HERE
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-
-/////////////////////////////////////////////////////////////////////////////////////////////////////////
 //THIS CODE BLOCK IS OUT OF PLACE, SHOULD BE USED TO FIND A GOAL, GIVEN THE POSITION OF A PUCK
 
 //geometry_msgs::Pose puck, contains position/orientation of puck
@@ -78,12 +22,14 @@
 // assume object of type eurobot2019_messages::collision_avoidance (array of bools), called collision_avoidance
 // assume also vector of array elements that correspond with a wall, called wall_vector
 
-#define CLOSE_ENOUGH //When goal is close enough, such that we can ignore collision_avoidance around adjacent directions adjacent to goal direction
-#define PI 3.1415926
+bool collision_check(double yaw, geometry_msg::Pose pose, geometry_msg::Pose goal){
 
 bool blocked_by_non_wall = false;
 std::vector<int> blocked_directions;
 blocked_directions.push_back(15); //junk value to push
+
+std::vector<int> wall_vector;
+wallignore(yaw, wall_vector, pose);
 
 for(int i = 0, j = 0; i < 8; i++){
   if (i == wall_vector[j]){
@@ -153,7 +99,7 @@ if(blocked_by_non_wall){
       else{
         if(blocked_directions[r] == i - 1 && blocked_directions[r + 1] == i + 1){
             if (pow(goal.target_pose.pose.position.x - pose.pose.position.x, 2) + pow(goal.target_pose.pose.position.y - pose.pose.position.y - , 2)) <= CLOSE_ENOUGH){
-                vector = wallignore(goal.target_pose.pose.position.y - pose.pose.position.y, goal.target_pose.pose.position.x - pose.pose.position.x, yaw)
+                vector = wallignore_instance(goal.target_pose.pose.position.y - pose.pose.position.y, goal.target_pose.pose.position.x - pose.pose.position.x, yaw)
                 for(int k = 0; k < vector.size(); k++){
                     if(vector[k] == i){
                         //score
@@ -181,31 +127,34 @@ if(blocked_by_non_wall){
             int base_link_pixel_y = round((base_link_y)/resolution);
             bool found_occupied = false;
 
-            for(int i = base_link_pixel_x; i >= 0 && i <= width && found_occupied; i++){
-                base_link_x += resolution
-                base_link_y += resoultion * tan(motion_angle)
+              for(int i = base_link_pixel_x; i >= 0 && i <= width && found_occupied; i++){
+                  base_link_x += resolution
+                  base_link_y += resoultion * tan(motion_angle)
 
-                int pixel_x = round((base_link_x)/resolution);
-                int pixel_y = round((base_link_y)/resolution);
+                  int pixel_x = round((base_link_x)/resolution);
+                  int pixel_y = round((base_link_y)/resolution);
 
-                if(pixel_x <= 0 || pixel_y <= 0 || pixel_x >= width || pixel_y >= height){
-                    found_occupied = true;
-                    double distance_to_occupied = pow((base_link_x - (pose.pose.position.x - origin.position.x)), 2) + pow((base_link_y - (pose.pose.position.y - origin.position.y)), 2)
-                }
+                  if(pixel_x <= 0 || pixel_y <= 0 || pixel_x >= width || pixel_y >= height){
+                      found_occupied = true;
+                      double distance_to_occupied = pow((base_link_x - (pose.pose.position.x - origin.position.x)), 2) + pow((base_link_y - (pose.pose.position.y - origin.position.y)), 2)
+                  }
 
-                else{
-                    if(map.data[pixel_x + pixel_y * width] == 100){
-                        found_occupied = true;
-                        double distance_to_occupied = pow((base_link_x - (pose.pose.position.x - origin.position.x)), 2) + pow((base_link_y - (pose.pose.position.y - origin.position.y)), 2)
-                    }
-                }
-            }
-          //none of them are, no score penalty
-          //find rest of score, i.e. space(distance to closest occupied point in direction), angle from goal
+                  else{
+                      if(map.data[pixel_x + pixel_y * width] == 100){
+                          found_occupied = true;
+                          double distance_to_occupied = pow((base_link_x - (pose.pose.position.x - origin.position.x)), 2) + pow((base_link_y - (pose.pose.position.y - origin.position.y)), 2)
+                      }
+                  }
+              }
+            //none of them are, no score penalty
+            //find rest of score, i.e. space(distance to closest occupied point in direction), angle from goal
+          }
         }
       }
     }
   }
+
+  return blocked_by_non_wall;
 }
 
 
@@ -236,6 +185,9 @@ if(blocked_by_non_wall){
 #include <actionlib/client/simple_action_client.h>
 #include <cmath>
 #include "message_interface.hpp"
+
+#define CLOSE_ENOUGH //When goal is close enough, such that we can ignore collision_avoidance around adjacent directions adjacent to goal direction
+#define PI 3.1415926
 
 typedef actionlib::SimpleActionClient<move_base_msgs::MoveBaseAction> MoveBaseClient;
 
@@ -278,35 +230,21 @@ void sub_map_metadeta_Callback(const nav_msgs::MapMetaData::ConstPtr& msg)
     got_map_metadata = true;
 }
 
-geometry_msgs::Pose get_robot_pos(tf::TransformListener& listener, double& yaw){
-    tf::StampedTransform transform;
-    try
-    {
-      listener.lookupTransform("/map", "/base_link", ros::Time(0), transform);
+eurobot2019_messages::collision_avoidance collision_avoidance;
 
-      // construct a pose message
-      geometry_msgs::Pose pose;
-
-      pose.pose.orientation.x = transform.getRotation().getX();
-      pose.pose.orientation.y = transform.getRotation().getY();
-      pose.pose.orientation.z = transform.getRotation().getZ();
-      pose.pose.orientation.w = transform.getRotation().getW();
-
-      pose.pose.position.x = transform.getOrigin().getX();
-      pose.pose.position.y = transform.getOrigin().getY();
-      pose.pose.position.z = transform.getOrigin().getZ();
-
-      yaw = tf::getYaw(transform.getRotation());
-
-      return pose;
-    }
-    catch (tf::TransformException &ex)
-    {
-        ROS_ERROR("%s",ex.what());
-        //ros::Duration(1.0).sleep();
-        continue;
-    }
+void sub_collision_avoidance_Callback(const eurobot2019_messages::collision_avoidance::ConstPtr& msg)
+{
+    ROS_INFO("sub_collision_avoidance_Callback returned successfully");
+    collision_avoidance = *msg;
 }
+
+geometry_msgs::Pose get_robot_pos(tf::TransformListener& listener, double& yaw);
+void wallignore(double yaw, std::vector<int>& wall_vector, geometry_msg::Pose pose);
+void wallignore_instance(double yaw, double x, double y, std::vector<char>& wall_vector);
+double anglescores(double yaw, double x, double y);
+double constrainAngle(double x);
+Quaterniond toQuaternion(double yaw, double pitch, double roll);
+bool collision_check(double yaw, geometry_msg::Pose pose, geometry_msg::Pose goal);
 
 int main(int argc, char **argv) {
     // Initialise ROS
@@ -329,6 +267,7 @@ int main(int argc, char **argv) {
     ros::Subscriber sub_d_r = n.subscribe("drop_status_r", 10, sub_d_r_chatterCallback);
     ros::Subscriber sub_map = n.subscribe("map", 1, sub_map_chatterCallback);
     ros::Subscriber sub_map_metadeta = n.subscribe("map", 1, sub_map_metadeta_Callback);
+    ros::Subscriber sub_collision_avoidance = n.subscribe("collision_avoidance", 1, sub_collision_avoidance_Callback);
 
     do{
         nh.spinOnce();
@@ -337,7 +276,7 @@ int main(int argc, char **argv) {
     double resolution = map_metadata.resolution;
     int width = map_metadata.width;
     int height = map_metadata.height;
-    geometry_msg::Pose origin= map_metadeta.origin;
+    geometry_msg::Pose origin = map_metadeta.origin;
 
     double collision_radius;
     if(!nh->getParam("tactics/collision_radius",
@@ -360,10 +299,10 @@ int main(int argc, char **argv) {
 
     move_base_msgs::MoveBaseGoal goal;
 
-    //we'll send a goal to the robot to move 1 meter to the right
+    //Assume first goal is known?
     goal.target_pose.header.frame_id = "/map";
     goal.target_pose.header.stamp = ros::Time::now();
-    goal.target_pose.pose.position.y = -1.0; //it's not -1
+    goal.target_pose.pose.position.y = -1.0;
 
     ros::Rate sleeper(100);
 
@@ -373,24 +312,39 @@ int main(int argc, char **argv) {
         ROS_INFO("Sending goal");
         ac.sendGoal(goal);
 
+        //ac.cancelGoal();
         ac.waitForResult();
 
         static auto t1 = std::chrono::high_resolution_clock::now();
         bool has_moved_closer = true;
-        geometry_msgs::Pose pose = get_robot_pos(listener);
-        double distance = pow(pose.pose.position.x - goal.target_pose.pose.position.x, 2) + pow(pose.pose.position.y - goal.target_pose.pose.position.y, 2);
+        geometry_msgs::Pose pose = get_robot_pos(listener, yaw);
+        double prev_distance = pow(pose.pose.position.x - goal.target_pose.pose.position.x, 2) + pow(pose.pose.position.y - goal.target_pose.pose.position.y, 2);
 
         while(ac.getState() != actionlib::SimpleClientGoalState::SUCCEEDED || has_moved_closer) {//check collision avoidance also
-            tf::TransformStamped pose = get_robot_pos(listener);
-            double prev_distance = pow(pose.pose.position.x - goal.target_pose.pose.position.x, 2) + pow(pose.pose.position.y - goal.target_pose.pose.position.y, 2);
-            if(distance < prev_distance){
-                prev_distance = distance;
-                static auto t1 = std::chrono::high_resolution_clock::now();
+            bool avoided_collision = false;
+            geometry_msgs::Pose pose = get_robot_pos(listener, yaw);
+            double distance = pow(pose.pose.position.x - goal.target_pose.pose.position.x, 2) + pow(pose.pose.position.y - goal.target_pose.pose.position.y, 2);
+            nh.spinOnce();
+            //check collision avoidance
+            while(collision_check(yaw, pose, goal.target_pose)){
+                avoided_collision = true;
+                nh.spinOnce();
+                geometry_msgs::Pose pose = get_robot_pos(listener, yaw);
             }
 
-            else {
-            auto t2 = std::chrono::high_resolution_clock::now();
-            std::chrono::duration<double, std::milli> time_span = t2 - t1;
+            if(avoided_collision){
+                //reset goal
+                //
+            }
+
+            else if(distance < prev_distance){
+                prev_distance = distance;
+                t1 = std::chrono::high_resolution_clock::now();
+            }
+
+            else{
+                auto t2 = std::chrono::high_resolution_clock::now();
+                std::chrono::duration<double, std::milli> time_span = t2 - t1;
 
                 if (time_span.count() > 1000){
                     has_moved_closer = false;
@@ -453,35 +407,111 @@ double anglescores(double yaw, double x, double y){
 
 }
 
+void wallignore(double yaw, std::vector<int>& wall_vector, geometry_msg::Pose pose){
+    // Might need to reconsider if pucks are taken to be occupied space
+        //relative to origin (edge of map), not (0,0) of map
+    double resolution = map_metadata.resolution;
+    int width = map_metadata.width;
+    int height = map_metadata.height;
+    geometry_msg::Pose origin = map_metadeta.origin;
+
+    double base_link_x = pose.pose.position.x - origin.position.x;
+    double base_link_y = pose.pose.position.y - origin.position.y;
+    int base_link_pixel_x = round((pose.pose.position.x - origin.position.x)/resolution);
+    int base_link_pixel_y = round((pose.pose.position.y - origin.position.y)/resolution);
+
+    std::vector<bool> bool_wall_vector = {0, 0, 0, 0, 0, 0, 0, 0};
+
+    if ( (base_link_y + collision_radius) > resolution * height){
+        int top = height
+    }
+
+    else{
+        int top = ceil((base_link_y + collision_radius)/resolution)
+    }
+
+    if ( (base_link_x + collision_radius) > resolution * width){
+        int right = width
+    }
+
+    else{
+        int right = ceil((base_link_x + collision_radius)/resolution)
+    }
+
+    if ( (base_link_x - collision_radius) < 0){
+        int left = 0
+    }
+
+    else{
+        int left = floor((base_link_x - collision_radius)/resolution)
+    }
+
+    if ( (base_link_y - collision_radius) < 0){
+        int bottom = 0
+    }
+
+    else{
+        int bottom = ceil((base_link_y - collision_radius)/resolution)
+    }
+
+    for(int j = bottom; j <= top; j++){
+        for(int i = left; i <= right; i++){
+            if(map.data[i + j * width] == 100){
+                double y = (j - base_link_pixel_x) * resolution;
+                double x = (i - base_link_pixel_y) * resolution;
+                std::vector<int> wall_vector_instance;
+                wallignore_instance(yaw, x, y, wall_vector_instance);
+                for(int i = 0; i < wall_vector_instance.size(); i++){
+                    bool_wall_vector[wall_vector_instance[i]] = true;
+                }
+            }
+        }
+    }
+
+    for(int i = 0; i < 8; i++){
+        if(bool_vector[i]){
+            wall_vector.push_back(i);
+        }
+    }
+}
+
 //A function that suppresses the collision avoidance on the wall, x,y are the occupied cell's relative position to the centre of the robot.
-int wallignore(double yaw, double x, double y, std::vector<char>& wall_vector) {
+void wallignore_instance(double yaw, double x, double y, std::vector<int>& wall_vector_instance){
   //Calculate the anticlockwise angle of the point's position vector to positive x-axis.
-  double alpha = atan2( y, x );
+  double alpha = atan2(y, x);
   //Calcu;ate the angle (clockwise is positive) between yaw and the point's position vector.
   double angler2w = yaw - alpha + 1.5707963;
   if (((-0.3926991 <= angler2w) && (angler2w <= 0.3926991)) || (((-0.3926991 + 3.1415926*2) <= angler2w) && (angler2w <= (0.3926991 + 3.1415926*2)))){
     // Suppress collision_avoidance[0] // Assume 0 is the ultrasound sensor in the front of the robot, and the order increases in clockwise direction
-  }
-  if (((-1.1780972 <= angler2w) && (angler2w <= -0.3926991)) || (((-1.1780972 + 3.1415926*2) <= angler2w) && (angler2w <= (-0.3926991 + 3.1415926*2)))){
-    // Suppress collision_avoidance[7]
-  }
-  if (((-1.9634954 <= angler2w) && (angler2w <= -1.1780972)) || (((-1.9634954 + 3.1415926*2) <= angler2w) && (angler2w <= (-1.1780972 + 3.1415926*2)))){
-    // Suppress collision_avoidance[6]
-  }
-  if (((-2.7488936 <= angler2w) && (angler2w <= -1.9634954)) || (((-2.7488936 + 3.1415926*2) <= angler2w) && (angler2w <= (-1.9634954 + 3.1415926*2)))){
-    // Suppress collision_avoidance[5]
-  }
-  if (((-3.5342917 <= angler2w) && (angler2w <= -2.7488936)) || (((-3.5342917 + 3.1415926*2) <= angler2w) && (angler2w <= (-2.7488936 + 3.1415926*2)))){
-    // Suppress collision_avoidance[4]
-  }
-  if (((-4.3196899 <= angler2w) && (angler2w <= -3.5342917)) || (((-4.3196899 + 3.1415926*2) <= angler2w) && (angler2w <= (-3.5342917 + 3.1415926*2)))){
-    // Suppress collision_avoidance[3]
-  }
-  if (((-4.7123890 <= angler2w) && (angler2w <= -4.3196899)) || (((-5.1050881 + 3.1415926*2) <= angler2w) && (angler2w <= (-4.3196899 + 3.1415926*2))) || (((-5.1050881 + 3.1415926*4) <= angler2w) && (angler2w <= (7.8539817)))){
-    // Suppress collision_avoidance[2] // From the calculation, the range of the angler2w is between -3pi/2 to 5pi/2
+    wall_vector_instance.push_back(0);
   }
   if (((0.3926991 <= angler2w) && (angler2w <= (-5.1050881 + 3.1415926*2))) || (((0.3926991 + 3.1415926*2) <= angler2w) && (angler2w <= (-5.1050881 + 3.1415926*4)))){
     // Suppress collision_avoidance[1]
+    wall_vector_instance.push_back(1);
+  }
+  if (((-4.7123890 <= angler2w) && (angler2w <= -4.3196899)) || (((-5.1050881 + 3.1415926*2) <= angler2w) && (angler2w <= (-4.3196899 + 3.1415926*2))) || (((-5.1050881 + 3.1415926*4) <= angler2w) && (angler2w <= (7.8539817)))){
+    // Suppress collision_avoidance[2] // From the calculation, the range of the angler2w is between -3pi/2 to 5pi/2
+    wall_vector_instance.push_back(2);
+  }
+  if (((-4.3196899 <= angler2w) && (angler2w <= -3.5342917)) || (((-4.3196899 + 3.1415926*2) <= angler2w) && (angler2w <= (-3.5342917 + 3.1415926*2)))){
+    // Suppress collision_avoidance[3]
+    wall_vector_instance.push_back(3);
+  }
+  if (((-3.5342917 <= angler2w) && (angler2w <= -2.7488936)) || (((-3.5342917 + 3.1415926*2) <= angler2w) && (angler2w <= (-2.7488936 + 3.1415926*2)))){
+    // Suppress collision_avoidance[4]
+    wall_vector_instance.push_back(4);
+  }
+  if (((-2.7488936 <= angler2w) && (angler2w <= -1.9634954)) || (((-2.7488936 + 3.1415926*2) <= angler2w) && (angler2w <= (-1.9634954 + 3.1415926*2)))){
+    // Suppress collision_avoidance[5]
+    wall_vector_instance.push_back(5);
+  }
+  if (((-1.9634954 <= angler2w) && (angler2w <= -1.1780972)) || (((-1.9634954 + 3.1415926*2) <= angler2w) && (angler2w <= (-1.1780972 + 3.1415926*2)))){
+    // Suppress collision_avoidance[6]
+    wall_vector_instance.push_back(6);
+  }
+  if (((-1.1780972 <= angler2w) && (angler2w <= -0.3926991)) || (((-1.1780972 + 3.1415926*2) <= angler2w) && (angler2w <= (-0.3926991 + 3.1415926*2)))){
+    // Suppress collision_avoidance[7]
+    wall_vector_instance.push_back(7);
   }
 }
 
@@ -501,6 +531,36 @@ Quaterniond toQuaternion(double yaw, double pitch, double roll) // yaw (Z), pitc
     q.y = sy * cp * sr + cy * sp * cr;
     q.z = sy * cp * cr - cy * sp * sr;
     return q;
+}
+
+geometry_msgs::Pose get_robot_pos(tf::TransformListener& listener, double& yaw){
+    tf::StampedTransform transform;
+    try
+    {
+      listener.lookupTransform("/map", "/base_link", ros::Time(0), transform);
+
+      // construct a pose message
+      geometry_msgs::Pose pose;
+
+      pose.pose.orientation.x = transform.getRotation().getX();
+      pose.pose.orientation.y = transform.getRotation().getY();
+      pose.pose.orientation.z = transform.getRotation().getZ();
+      pose.pose.orientation.w = transform.getRotation().getW();
+
+      pose.pose.position.x = transform.getOrigin().getX();
+      pose.pose.position.y = transform.getOrigin().getY();
+      pose.pose.position.z = transform.getOrigin().getZ();
+
+      yaw = tf::getYaw(transform.getRotation());
+
+      return pose;
+    }
+    catch (tf::TransformException &ex)
+    {
+        ROS_ERROR("%s",ex.what());
+        //ros::Duration(1.0).sleep();
+        continue;
+    }
 }
 
 
