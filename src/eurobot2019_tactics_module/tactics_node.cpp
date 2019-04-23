@@ -1,21 +1,74 @@
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
 //THIS CODE BLOCK IS OUT OF PLACE, SHOULD BE USED TO FIND A GOAL, GIVEN THE POSITION OF A PUCK
-
-//geometry_msgs::Pose puck, contains position/orientation of puck
-//geometry_msgs::Pose pose, contains position/orientation of robot
-
-
 # define APPROACH_RADIUS 3 //distance away from puck robot must be at, to pick it up
 
-// puck - pose = vector for direction/pose_orientation
 // use make_plan to check that place is free
+// assuming make_plan returns an empty vector, if occupied space
+
+geometry_msgs::PoseStamped Start;
+geometry_msgs::PoseStamped Goal;
 
 
+Start.header.seq = 0;
+Start.header.stamp = ros::Time(0);
+Start.header.frame_id = "/map";
+Start.pose = pose.pose;
 
+// calculate thing around puck
+// set direction/position as x2, y2, cy, sy
 
+double approach_angle = atan2((puck.pose.position.x - pose.pose.position.x), (puck.pose.position.x - pose.pose.position.x));
+double x = puck.pose.position.x - (APPROACH_RADIUS * cos(approach_angle));
+double y = puck.pose.position.y - (APPROACH_RADIUS * sin(approach_angle));
+
+double desired_yaw = constrainAngle(approach_angle - PI/2);
+
+double cy = cos(desired_yaw * 0.5);
+double sy = sin(desired_yaw * 0.5);
+
+Goal.header.seq = 0;
+Goal.header.stamp = ros::Time(0);
+Goal.header.frame_id = "/map";
+Goal.pose.position.x = x;
+Goal.pose.position.y = y;
+Goal.pose.orientation.z = cy;
+Goal.pose.orientation.w = sy;
+
+nav_msgs::GetPlan srv;
+srv.request.start = Start;
+srv.request.goal = Goal;
+srv.request.tolerance = tolerance;
+
+ROS_INFO("Make plan: %d", (check_path.call(srv) ? 1 : 0));
+
+while(response.plan.poses.size() == 0){
+    approach_angle = fmod(rand(), 2*PI);
+    Goal.pose.position.x = puck.pose.position.x - (APPROACH_RADIUS * cos(approach_angle));
+    Goal.pose.position.y = puck.pose.position.y - (APPROACH_RADIUS * sin(approach_angle));
+
+    desired_yaw = constrainAngle(approach_angle - PI/2);
+
+    cy = cos(desired_yaw * 0.5);
+    sy = sin(desired_yaw * 0.5);
+
+    Goal.pose.orientation.z = cy;
+    Goal.pose.orientation.w = sy;
+
+    srv.request.goal = Goal;
+    check_path.call(srv);
+}
+
+ROS_INFO("Plan size: %d", srv.response.plan.poses.size());
+
+goal.target_pose.header.frame_id = "/map";
+goal.target_pose.header.stamp = ros::Time(0);
+
+goal.target_pose.pose = Goal.pose;
+
+ROS_INFO("Sending goal");
+ac.sendGoal(goal);
 // CODE BLOCK ENDS HERE
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
 
 //Hardcoded VERSION
 #include <ros/ros.h>
@@ -37,6 +90,7 @@
 #define Q //adjacency scoring constant
 #define COLLISION_AVOIDANCE_MOVE 0.05 //Amount that robot moves away to,to avoid collision
 #define TOO_LONG 5000
+#define APPROACH_RADIUS 3 //distance away from puck robot must be at, to pick it up
 
 typedef actionlib::SimpleActionClient<move_base_msgs::MoveBaseAction> MoveBaseClient;
 
@@ -97,6 +151,7 @@ bool collision_check(double yaw, geometry_msg::Pose pose, MoveBaseGoal goal, Mov
 double space_distance(double  yaw, geometry_msgs::Pose pose, int direction);
 
 int main(int argc, char **argv) {
+    srand (time(NULL));
     // Initialise ROS
     ros::init(argc, argv, "tactics");
 
@@ -119,6 +174,8 @@ int main(int argc, char **argv) {
     ros::Subscriber sub_map_metadeta = n.subscribe("map", 1, sub_map_metadeta_Callback);
     ros::Subscriber sub_collision_avoidance = n.subscribe("collision_avoidance", 1, sub_collision_avoidance_Callback);
 
+    ServiceClient check_path = nh_.serviceClient<nav_msgs::getplan>("/move_base/make_plan");
+
     do{
         nh.spinOnce();
     }while(!got_map && !got_map_metadata);
@@ -129,9 +186,15 @@ int main(int argc, char **argv) {
     geometry_msg::Pose origin = map_metadeta.origin;
 
     double collision_radius;
-    if(!nh->getParam("tactics/collision_radius",
+    if(!nh.getParam("tactics/collision_radius",
                      collision_radius)) {
         ROS_ERROR("Failed to get param 'tactics/collision_radius'");
+    }
+
+    double tolerance;
+    if(!nh.getParam("tactics/tolerance",
+                     tolerance)) {
+        ROS_ERROR("Failed to get param 'tactics/tolerance'");
     }
 
     double yaw;
@@ -172,7 +235,7 @@ int main(int argc, char **argv) {
 
         while(ac.getState() != actionlib::SimpleClientGoalState::SUCCEEDED || has_moved_closer_or_in_time){
             bool avoided_collision = false;
-            geometry_msgs::Pose pose = get_robot_pos(listener, yaw);
+            pose = get_robot_pos(listener, yaw);
             double distance = pow(pose.pose.position.x - goal.target_pose.pose.position.x, 2) + pow(pose.pose.position.y - goal.target_pose.pose.position.y, 2);
             nh.spinOnce();
             //check collision avoidance
@@ -181,7 +244,7 @@ int main(int argc, char **argv) {
             while(collision_check(yaw, pose, goal.target_pose, ac)){
                 avoided_collision = true;
                 nh.spinOnce();
-                geometry_msgs::Pose pose = get_robot_pos(listener, yaw);
+                pose = get_robot_pos(listener, yaw);
             }
 
             if(avoided_collision){
@@ -194,6 +257,10 @@ int main(int argc, char **argv) {
             else if(distance < prev_distance){
                 prev_distance = distance;
                 t1 = std::chrono::high_resolution_clock::now();
+
+                if (too_long_span.count() > TOO_LONG){
+                    has_moved_closer_or_in_time = false;
+                }
             }
 
             else{
@@ -372,15 +439,13 @@ Quaterniond toQuaternion(double yaw, double pitch, double roll) // yaw (Z), pitc
     double cy = cos(yaw * 0.5);
     double sy = sin(yaw * 0.5);
     double cp = cos(pitch * 0.5);
-    double sp = sin(pitch * 0.5);
     double cr = cos(roll * 0.5);
-    double sr = sin(roll * 0.5);
 
     Quaterniond q;
-    q.w = cy * cp * cr + sy * sp * sr;
-    q.x = cy * cp * sr - sy * sp * cr;
-    q.y = sy * cp * sr + cy * sp * cr;
-    q.z = sy * cp * cr - cy * sp * sr;
+    q.w = cy * cp * cr +
+    q.x =  -
+    q.y =  +
+    q.z = sy * cp * cr - ;
     return q;
 }
 
