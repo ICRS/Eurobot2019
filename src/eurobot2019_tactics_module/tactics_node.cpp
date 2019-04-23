@@ -431,6 +431,27 @@ int main(int argc, char **argv) {
     }
 }
 
+//A function to normalize the angle to -pi to pi
+double constrainAngle(double x){
+    x = fmod(x + 3.1415926, 6.2831852);
+    if (x < 0)
+        x += 6.2831852;
+    return x - 3.1415926;
+}
+
+//A function that assigns scores to different ultrasound directions according to the angle between a ultrasound direction and the direction to the previous(current?) goal
+double anglescores(double yaw, double x, double y){
+  x = goal.target_pose.pose.position.x - pose.pose.position.x;
+  y = goal.target_pose.pose.position.y - pose.pose.position.y;
+  double gamma = atan2(y, x);
+  // Calculate angle between direction of robot and the goal
+  double angler2g = yaw - gamma + 1.57079632;//using 8 decimal places, if bug return to 7
+  for(int i=0; i<8; i++){
+    double ultraangle = constrainAngle(angler2g - 0.78539816*i); //Calculate normalized angle
+    //return score for corresponding ultraangle
+  }
+
+}
 
 //A function that suppresses the collision avoidance on the wall, x,y are the occupied cell's relative position to the centre of the robot.
 int wallignore(double yaw, double x, double y, std::vector<char>& wall_vector) {
