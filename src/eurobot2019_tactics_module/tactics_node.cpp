@@ -45,7 +45,7 @@
                 //double y = (j - base_link_pixel_x) * resolution;
                 //double x = (i - base_link_pixel_y) * resolution;
                 //yaw
-                //run function to ignore things
+                //run function to ignore things, wallignore
                 // returns vector of values
             }
         }
@@ -56,6 +56,16 @@
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
 //THIS CODE BLOCK IS OUT OF PLACE, SHOULD BE USED TO FIND A GOAL, GIVEN THE POSITION OF A PUCK
+
+//geometry_msgs::Pose puck, contains position/orientation of puck
+//geometry_msgs::Pose pose, contains position/orientation of robot
+
+
+# define APPROACH_RADIUS 3 //distance away from puck robot must be at, to pick it up
+
+// puck - pose = vector for direction/pose_orientation
+// use make_plan to check that place is free
+
 
 
 
@@ -68,9 +78,12 @@
 // assume object of type eurobot2019_messages::collision_avoidance (array of bools), called collision_avoidance
 // assume also vector of array elements that correspond with a wall, called wall_vector
 
+#define CLOSE_ENOUGH //When goal is close enough, such that we can ignore collision_avoidance around adjacent directions adjacent to goal direction
+#define PI 3.1415926
+
 bool blocked_by_non_wall = false;
 std::vector<int> blocked_directions;
-blocked_directions.push_back(15);
+blocked_directions.push_back(15); //junk value to push
 
 for(int i = 0, j = 0; i < 8; i++){
   if (i == wall_vector[j]){
@@ -104,13 +117,13 @@ if(blocked_by_non_wall){
 
     else{
       if(i == 0){
-        if(blocked_directions[1] == 1 && blocked_directions[blocked_directions.size()] == 7){
+        if(blocked_directions[1] == 1 && blocked_directions[blocked_directions.size() - 1] == 7){
           //find distance/direction and rest of score
           //If not, abandon
         }
 
 
-        else if(blocked_directions[1] == 1 || blocked_directions[blocked_directions.size()] == 7){
+        else if(blocked_directions[1] == 1 || blocked_directions[blocked_directions.size() - 1] == 7){
           //adjust score accordingly
         }
 
@@ -121,13 +134,13 @@ if(blocked_by_non_wall){
       }
 
       if(i == 7){
-        if(blocked_directions[1] == 0 && blocked_directions[blocked_directions.size()] == 6){
+        if(blocked_directions[1] == 0 && blocked_directions[blocked_directions.size() - 1] == 6){
           //find distance/direction and score
           //If not, abandon
         }
 
 
-        if(blocked_directions[1] == 0 || blocked_directions[blocked_directions.size()] == 6){
+        if(blocked_directions[1] == 0 || blocked_directions[blocked_directions.size() - 1] == 6){
           //adjust score accordingly
         }
 
@@ -139,15 +152,54 @@ if(blocked_by_non_wall){
 
       else{
         if(blocked_directions[r] == i - 1 && blocked_directions[r + 1] == i + 1){
-          //find distance/direction and score
-          //If not, abandon
+            if (pow(goal.target_pose.pose.position.x - pose.pose.position.x, 2) + pow(goal.target_pose.pose.position.y - pose.pose.position.y - , 2)) <= CLOSE_ENOUGH){
+                vector = wallignore(goal.target_pose.pose.position.y - pose.pose.position.y, goal.target_pose.pose.position.x - pose.pose.position.x, yaw)
+                for(int k = 0; k < vector.size(); k++){
+                    if(vector[k] == i){
+                        //score
+                        break;
+                    }
+                }
+            }
+
+            else{
+                //ignore
+            }
         }
 
         if(blocked_directions[r] == i - 1 || blocked_directions[r + 1] == i + 1){
           //adjust score accordingly
+          // Calculate rest of score
         }
 
         else{
+            pose = get_robot_pos(listener, yaw);
+            double base_link_x = pose.pose.position.x - origin.position.x;
+            double base_link_y = pose.pose.position.y - origin.position.y;
+            double motion_angle = yaw - (i * PI/4) + PI/2;
+            int base_link_pixel_x = round((base_link_x)/resolution);
+            int base_link_pixel_y = round((base_link_y)/resolution);
+            bool found_occupied = false;
+
+            for(int i = base_link_pixel_x; i >= 0 && i <= width && found_occupied; i++){
+                base_link_x += resolution
+                base_link_y += resoultion * tan(motion_angle)
+
+                int pixel_x = round((base_link_x)/resolution);
+                int pixel_y = round((base_link_y)/resolution);
+
+                if(pixel_x <= 0 || pixel_y <= 0 || pixel_x >= width || pixel_y >= height){
+                    found_occupied = true;
+                    double distance_to_occupied = pow((base_link_x - (pose.pose.position.x - origin.position.x)), 2) + pow((base_link_y - (pose.pose.position.y - origin.position.y)), 2)
+                }
+
+                else{
+                    if(map.data[pixel_x + pixel_y * width] == 100){
+                        found_occupied = true;
+                        double distance_to_occupied = pow((base_link_x - (pose.pose.position.x - origin.position.x)), 2) + pow((base_link_y - (pose.pose.position.y - origin.position.y)), 2)
+                    }
+                }
+            }
           //none of them are, no score penalty
           //find rest of score, i.e. space(distance to closest occupied point in direction), angle from goal
         }
@@ -381,33 +433,33 @@ int main(int argc, char **argv) {
 
 
 //A function that suppresses the collision avoidance on the wall, x,y are the occupied cell's relative position to the centre of the robot.
-int wallignore(double yaw, double x, double y, std::vector<char>& v) {
+int wallignore(double yaw, double x, double y, std::vector<char>& wall_vector) {
   //Calculate the anticlockwise angle of the point's position vector to positive x-axis.
   double alpha = atan2( y, x );
   //Calcu;ate the angle (clockwise is positive) between yaw and the point's position vector.
   double angler2w = yaw - alpha + 1.5707963;
-  if ((-0.3926991 <= angler2w <= 0.3926991) || ((-0.3926991 + 3.1415926*2) <= angler2w <= (0.3926991 + 3.1415926*2))){
+  if (((-0.3926991 <= angler2w) && (angler2w <= 0.3926991)) || (((-0.3926991 + 3.1415926*2) <= angler2w) && (angler2w <= (0.3926991 + 3.1415926*2)))){
     // Suppress collision_avoidance[0] // Assume 0 is the ultrasound sensor in the front of the robot, and the order increases in clockwise direction
   }
-  if ((-1.1780972 <= angler2w <= -0.3926991) || ((-1.1780972 + 3.1415926*2) <= angler2w <= (-0.3926991 + 3.1415926*2))){
+  if (((-1.1780972 <= angler2w) && (angler2w <= -0.3926991)) || (((-1.1780972 + 3.1415926*2) <= angler2w) && (angler2w <= (-0.3926991 + 3.1415926*2)))){
     // Suppress collision_avoidance[7]
   }
-  if ((-1.9634954 <= angler2w <= -1.1780972) || ((-1.9634954 + 3.1415926*2) <= angler2w <= (-1.1780972 + 3.1415926*2))){
+  if (((-1.9634954 <= angler2w) && (angler2w <= -1.1780972)) || (((-1.9634954 + 3.1415926*2) <= angler2w) && (angler2w <= (-1.1780972 + 3.1415926*2)))){
     // Suppress collision_avoidance[6]
   }
-  if ((-2.7488936 <= angler2w <= -1.9634954) || ((-2.7488936 + 3.1415926*2) <= angler2w <= (-1.9634954 + 3.1415926*2))){
+  if (((-2.7488936 <= angler2w) && (angler2w <= -1.9634954)) || (((-2.7488936 + 3.1415926*2) <= angler2w) && (angler2w <= (-1.9634954 + 3.1415926*2)))){
     // Suppress collision_avoidance[5]
   }
-  if ((-3.5342917 <= angler2w <= -2.7488936) || ((-3.5342917 + 3.1415926*2) <= angler2w <= (-2.7488936 + 3.1415926*2))){
+  if (((-3.5342917 <= angler2w) && (angler2w <= -2.7488936)) || (((-3.5342917 + 3.1415926*2) <= angler2w) && (angler2w <= (-2.7488936 + 3.1415926*2)))){
     // Suppress collision_avoidance[4]
   }
-  if ((-4.3196899 <= angler2w <= -3.5342917) || ((-4.3196899 + 3.1415926*2) <= angler2w <= (-3.5342917 + 3.1415926*2))){
+  if (((-4.3196899 <= angler2w) && (angler2w <= -3.5342917)) || (((-4.3196899 + 3.1415926*2) <= angler2w) && (angler2w <= (-3.5342917 + 3.1415926*2)))){
     // Suppress collision_avoidance[3]
   }
-  if ((-4.7123890 <= angler2w <= -4.3196899) || ((-5.1050881 + 3.1415926*2) <= angler2w <= (-4.3196899 + 3.1415926*2)) || ((-5.1050881 + 3.1415926*4) <= angler2w <= (7.8539817))){
+  if (((-4.7123890 <= angler2w) && (angler2w <= -4.3196899)) || (((-5.1050881 + 3.1415926*2) <= angler2w) && (angler2w <= (-4.3196899 + 3.1415926*2))) || (((-5.1050881 + 3.1415926*4) <= angler2w) && (angler2w <= (7.8539817)))){
     // Suppress collision_avoidance[2] // From the calculation, the range of the angler2w is between -3pi/2 to 5pi/2
   }
-  if ((0.3926991 <= angler2w <= (-5.1050881 + 3.1415926*2)) || ((0.3926991 + 3.1415926*2) <= angler2w <= (-5.1050881 + 3.1415926*4))){
+  if (((0.3926991 <= angler2w) && (angler2w <= (-5.1050881 + 3.1415926*2))) || (((0.3926991 + 3.1415926*2) <= angler2w) && (angler2w <= (-5.1050881 + 3.1415926*4)))){
     // Suppress collision_avoidance[1]
   }
 }
