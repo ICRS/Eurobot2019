@@ -82,6 +82,7 @@ ac.sendGoal(goal);
 #inclde "geometry_msgs/PoseStamped"
 #include <actionlib/client/simple_action_client.h>
 #include <cmath>
+#include <algorithm>
 #include "message_interface.hpp"
 
 #define CLOSE_ENOUGH //When goal is close enough, such that we can ignore collision_avoidance around adjacent directions adjacent to goal direction
@@ -298,8 +299,35 @@ int main(int argc, char **argv) {
 
         else{
             ROS_INFO("The base failed to move to next position and orientation");
+            //Set goal another puck
+            //total_collision_time
+            //Assume receiving geometry_msgs::PoseArray poses and eurobot2019_messages::pickup pickup
+            std::vector <double>& puck_score;
+            std::vector <int>& puck_order;
+            For (i=0; i < poses.size(); i++){
+            double puck_distance = pow(poses.poses[i].position.x - pose.pose.position.x, 2) + pow(poses.poses[i].position.y - pose.pose.position.y, 2);
 
-            total_collision_time, proximity to previous puck, puck position, values of puck
+            double proximity = pow(poses.poses[i].position.x - goal.target_pose.pose.position.x, 2) + pow(poses.poses[i].position.y - goal.target_pose.pose.position.y, 2);
+            double puck_value =0
+            if (pickup.colour = 1){
+              puck_value = // value for red;
+            }
+            else if (pickup.colour = 2){
+              puck_value = //value for green;
+            }
+            else if (pickup.colour = 3){
+              puck_value = //value for blue;
+            }
+            else {
+              puck_value =0;
+            }
+            puck_score.push_back(puck_value/(total_collision_time/proximity));//Scale by a constant?
+            puck_order.push_back(i);
+          }
+          int chosen_puck = std::max_element(puck_score.begin(),puck_score.end()) - puck_score.begin(); //No need for puck_order?
+          //goal = poses.Pose[chosen_puck];
+          geometry_msgs::Pose puck = poses.poses[chosen_puck].pose;
+          ac.sendGoal(goal);
         }
 
         nh.spinOnce();
