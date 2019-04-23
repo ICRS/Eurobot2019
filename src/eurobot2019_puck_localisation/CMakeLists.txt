@@ -19,6 +19,7 @@ find_package(catkin REQUIRED COMPONENTS
   tf2_ros
   usb_cam
   find_object_2d
+  tuw_ellipses
 )
 
 ## System dependencies are found with CMake's conventions

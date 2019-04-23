@@ -1,16 +1,16 @@
 
 <launch>
   <!-- camera driver -->
-  <node pkg="usb_cam" type ="usb_cam_node" name="camera" output="log" respawn="true">
+  <node pkg="usb_cam" type ="usb_cam_node" name="camera" output="log" respawn="true" launch-prefix="xterm -e">
   <!-- camera should be plugged in first to be video0 -->
   <param name="video_device" value="/dev/video0"/>
   <param name="framerate" value="30"/>
-  <!-- camera callibration file location -->
+  <!-- camera calibration file location -->
   <param name="camera_info_url"
-         value="file://$(find eurobot2019_puck_localisation)/camera/camera_callibration.ini"/>
+         value="file://$(find eurobot2019_puck_localisation)/camera/camera_calibration.ini"/>
   <param name="camera_name" value="camera"/>
   </node>
-  <node pkg="eurobot2019_puck_localisation" type="node" name="puck_localisation" respawn="true" output="log">
+  <node pkg="eurobot2019_puck_localisation" type="node" name="puck_localisation" respawn="true" output="log" launch-prefix="xterm -e">
   <param name="redLowH" value="161"/>
   <param name="redHighH" value="179"/>
   <param name="redLowS" value="88"/>
@@ -29,5 +29,10 @@
   <param name="greenHighS" value="195"/>
   <param name="greenLowV" value="81"/>
   <param name="greenHighV" value="136"/>
+  <param name="fu" value="558.285043"/>
+  <param name="fv" value="571.252645"/>
+  <param name="u0" value="336.586825"/>
+  <param name="v0" value="349.077050"/>
   </node>
+  
 </launch>

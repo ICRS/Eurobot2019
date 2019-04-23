@@ -7,6 +7,7 @@
 #include <sensor_msgs/image_encodings.h>
 #include <stdio.h>
 #include <cv_bridge/cv_bridge.h>
+#include <cmath>
 
 using namespace cv;
 using namespace std;
@@ -23,6 +24,8 @@ class puck_localisation
     double redParams[6];
     double blueParams[6];
     double greenParams[6];
+    double x_w, y_w;
+
 public:
     puck_localisation():it_(nh_){
         // Subscribe to input video and publish to output video
@@ -50,6 +53,7 @@ public:
         nh_.getParam("puck_localisation/greenHighV",greenParams[5]);
     
         cv::namedWindow(OPENCV_WINDOW);
+        camera_initialisation();
     }
 
     ~puck_localisation(){
@@ -58,6 +62,13 @@ public:
 
     void image_callback(const sensor_msgs::ImageConstPtr& msg)
     {
+        static auto last_time = ros::Time::now();
+        auto time = ros::Time::now();
+        if(time.toSec() - last_time.toSec() < 1)
+            return;
+
+        last_time = time;
+
         cv_bridge::CvImagePtr cv_ptr;
         try
         {
@@ -105,7 +116,7 @@ public:
             vector<Vec3f> redPucks;
             GaussianBlur(redThreshold,redThreshold,Size(9,9),2,2);
             // hough transform to find the circles
-            cv::HoughCircles(redThreshold, redPucks, CV_HOUGH_GRADIENT,1,100,100,30,0,0);
+            cv::HoughCircles(redThreshold, redPucks, CV_HOUGH_GRADIENT,1,100,50,30,0,0);
             for( size_t i = 0; i < redPucks.size(); i++ ){   
                 Point center(cvRound(redPucks[i][0]), cvRound(redPucks[i][1]));
                 int radius = cvRound(redPucks[i][2]);
@@ -120,6 +131,8 @@ public:
             GaussianBlur(blueThreshold,blueThreshold,Size(9,9),2,2);
             // hough transform to find the circles
             cv::HoughCircles(blueThreshold, bluePucks, CV_HOUGH_GRADIENT,1,100,100,30,0,0);
+            if(bluePucks.size())
+                ROS_INFO("%d blue pucks found!",bluePucks.size());
             for( size_t i = 0; i < bluePucks.size(); i++ ){   
                 Point center(cvRound(bluePucks[i][0]), cvRound(bluePucks[i][1]));
                 int radius = cvRound(bluePucks[i][2]);
@@ -127,7 +140,8 @@ public:
                 cv::circle(cv_ptr->image, center, 3, cv::Scalar(0,255,0), -1, 8, 0 );
                 // circle outline
                 cv::circle(cv_ptr->image, center, radius, cv::Scalar(0,0,255), 3, 8, 0 );
-                cout<<"found " << bluePucks.size() <<" blue puck!" << endl;
+                find_position(center, blueThreshold);
+                ROS_INFO("blue puck %d position is:\tx: %f\ty: %f",i, x_w, y_w);
             }
 
             vector<Vec3f> greenPucks;
@@ -147,6 +161,7 @@ public:
 
 
         // Update GUI Window
+        cv::imshow("blue threshold", blueThreshold);
         cv::imshow(OPENCV_WINDOW, cv_ptr->image);
         cv::waitKey(3);
 
@@ -160,6 +175,11 @@ public:
         camera_intrinsic(2,0) = 0;
         camera_intrinsic(2,1) = 0;
         camera_intrinsic(2,2) = 1;    
+        nh_.getParam("puck_localisation/fu", camera_intrinsic(0,0));
+        nh_.getParam("puck_localisation/fv", camera_intrinsic(1,1));
+        nh_.getParam("puck_localisation/u0", camera_intrinsic(0,2));
+        nh_.getParam("puck_localisation/v0", camera_intrinsic(1,2));
+
         return 1;
     }
 
@@ -169,10 +189,18 @@ public:
         camera_intrinsic(0,2) = msg->K[2];
         camera_intrinsic(1,1) = msg->K[4];
         camera_intrinsic(1,2) = msg->K[5];
+
+        ROS_INFO("CALLBACK");
+
+        image_callback(img);
     }
 
-    void find_position(float u, float v, float z_w) {
+    void find_position(Point center, Mat img) {
+        cv::Matx31f hom(center.x, center.y, 1);
         
+        hom = camera_intrinsic.inv() * hom;
+        x_w = hom(0) / hom(2);// -u_c/fuPixel*puckDistToCam;
+        y_w = hom(1) / hom(2);// -v_c/fvPixel*puckDistToCam;
     }
 };
 
