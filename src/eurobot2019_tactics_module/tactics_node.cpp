@@ -286,11 +286,13 @@ int main(int argc, char **argv) {
             eurobot2019_messages::pickup pickup;
             pickup.colour = current_puck_colour;
             pickup.pos_reached = true;
-            pickup.is_vertical =
-            pickup_interface.set_msg();
+            pickup.is_vertical = is_vertical;
+            pickup_interface.set_msg(pickup);
+            int pickup_status_msg;
+            nh.spinOnce();
 
-            while(pickup_interface.get_msg(motor_msg) > 0){
-                //nh.spinOnce();
+            while(pickup_interface.get_msg(pickup_status_msg) > 0){
+                nh.spinOnce();
             }
 
             pucks_taken++;
