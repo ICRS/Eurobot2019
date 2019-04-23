@@ -212,6 +212,8 @@ int main(int argc, char **argv) {
     int current_puck_colour;
     bool is_vertical;
 
+    bool heading_to_ramp = false;
+
     //wait for the action server to come up
     while(!ac.waitForServer(ros::Duration(5.0))){
         ROS_INFO("Waiting for the move_base action server to come up");
@@ -240,7 +242,7 @@ int main(int argc, char **argv) {
         geometry_msgs::Pose pose = get_robot_pos(listener, yaw);
         double prev_distance = pow(pose.pose.position.x - goal.target_pose.pose.position.x, 2) + pow(pose.pose.position.y - goal.target_pose.pose.position.y, 2);
 
-        while(ac.getState() != actionlib::SimpleClientGoalState::SUCCEEDED || has_moved_closer_or_in_time){
+        while((ac.getState() != actionlib::SimpleClientGoalState::SUCCEEDED) && (has_moved_closer_or_in_time || heading_to_ramp)){
             bool avoided_collision = false;
             pose = get_robot_pos(listener, yaw);
             double distance = pow(pose.pose.position.x - goal.target_pose.pose.position.x, 2) + pow(pose.pose.position.y - goal.target_pose.pose.position.y, 2);
@@ -281,7 +283,7 @@ int main(int argc, char **argv) {
             }
         }
 
-        if (ac.getState() == actionlib::SimpleClientGoalState::SUCCEEDED){
+        if (ac.getState() == actionlib::SimpleClientGoalState::SUCCEEDED && !heading_to_ramp){
             ROS_INFO("Hooray, acquired desired position and orientation");
             eurobot2019_messages::pickup pickup;
             pickup.colour = current_puck_colour;
@@ -290,9 +292,16 @@ int main(int argc, char **argv) {
             pickup_interface.set_msg(pickup);
             int pickup_status_msg;
             nh.spinOnce();
+            pickup_interface.get_msg(pickup_status_msg);
 
-            while(pickup_interface.get_msg(pickup_status_msg) > 0){
+            while(pickup_status_msg > 0){
                 nh.spinOnce();
+                pickup_interface.get_msg(pickup_status_msg)
+                if(is_vertical){
+                  if(pickup_status == 4){
+                    //back up
+                  }
+                }
             }
 
             pucks_taken++;
@@ -313,6 +322,13 @@ int main(int argc, char **argv) {
               goal.pose.position.y = y;
               goal.pose.orientation.z = cy;
               goal.pose.orientation.w = sy;
+
+              heading_to_ramp = true;
+            }
+
+            else if(heading_to_ramp){
+              //pick up another puck
+              heading_to_ramp = false;
             }
 
             else{
@@ -332,7 +348,7 @@ int main(int argc, char **argv) {
                 else{
                   puck_value = 0;
                 }
-                puck_score.push_back((puck_value/puck_distance);//Scale by a constant?
+                puck_score.push_back(puck_value/puck_distance);//Scale by a constant?
               }
 
               int chosen_puck = std::max_element(puck_score.begin(),puck_score.end()) - puck_score.begin();
@@ -437,6 +453,9 @@ int main(int argc, char **argv) {
           Start.header.frame_id = "/map";
           Start.pose = pose.pose;
 
+          if(is_vertical){
+            
+          }
           double approach_angle = atan2((puck.pose.position.y - pose.pose.position.y), (puck.pose.position.x - pose.pose.position.x));
           double x = puck.pose.position.x - (APPROACH_RADIUS * cos(approach_angle));
           double y = puck.pose.position.y - (APPROACH_RADIUS * sin(approach_angle));

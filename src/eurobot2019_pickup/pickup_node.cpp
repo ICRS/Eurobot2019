@@ -98,6 +98,7 @@ int main(int argc, char **argv) {
                      */
                     state_queue.push(CLOSING);
                     if(command_msg.is_vertical)
+                        state_queue.push(BACK_UP);
                         state_queue.push(ROTATING);
                     switch(command_msg.colour) {
                     case 1:
@@ -125,9 +126,20 @@ int main(int argc, char **argv) {
 
         // Update if we've arrived at the required position
         auto grabber_pos = hardware.get_msg();
+        if(state_queue.front() == BACK_UP){
+          pickup_status_msg.data = state_queue.size();
+
+          target_msg = state_manager.get_target(state_queue.front());
+          state_queue.pop();
+
+          while(!command_msg.has_back_up){
+            command.set_msg(pickup_status_msg);
+            auto command_msg = command.get_msg();
+          }
+        }
         // If the current twist is non zero
         // And current z is not at the target, set twist to 0
-        if(grabber_pos.z_twist_rad > 1e-2 &&
+        else if(grabber_pos.z_twist_rad > 1e-2 &&
            !approx_equal(target_msg.z_pos_mm,
                          grabber_pos.z_pos_mm)) {
             motor_msg.z_twist_rad = 0;

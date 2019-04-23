@@ -6,6 +6,11 @@ bool is_vertical
 # Before continuing by setting this to false
 bool pos_reached
 
+# If this is true, it signals the robot has backed up
+bool has_back_up
+
+bool is_high
+
 # 0 is "idle at bottom front"
 # 1 is red
 # 2 is green
