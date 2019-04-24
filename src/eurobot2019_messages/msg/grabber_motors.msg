@@ -1,4 +1,20 @@
-float32 z_pos_mm
-float32 open_pos_mm
-float32 z_twist_rad
-bool servo_state
+int8 elevation
+#0 is bottom
+#1 is low
+#2 is high
+#3 is top
+
+int8 push_left
+int8 push_right
+int8 twist
+#0 is left
+#1 is middle
+#2 is right
+
+bool puck_rotation
+#0 is horizontal
+#1 is vertical
+
+bool open_close
+#0 is open
+#1 is close 
