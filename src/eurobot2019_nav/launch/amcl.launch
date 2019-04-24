@@ -34,7 +34,7 @@
         <param name="update_min_d" value="0.2"/>
         <param name="update_min_a" value="0.5"/>
 
-        <param name="odom_frame_id" value="odom"/>
+        <param name="odom_frame_id" value="odom_filtered"/>
 
         <param name="resample_interval" value="1"/>
 
