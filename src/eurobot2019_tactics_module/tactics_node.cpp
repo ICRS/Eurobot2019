@@ -208,10 +208,19 @@ int main(int argc, char **argv) {
     goal.target_pose.header.stamp = ros::Time::now();
     goal.target_pose.pose.position.y = 0.24;
     goal.target_pose.pose.position.x = 1.80;
+    double desired_yaw = 0;
+    double sy = sin(desired_yaw * 0.5);
+    double cy = cos(desired_yaw * 0.5);
+
+    goal.target_pose.pose.orientation.z = cy;
+    goal.target_pose.pose.orientation.w = sy;
 
     while(!start){
         ros::spinOnce();
     }
+
+    ready_to_grab(true);
+    int count = 0;
     //SECOND ONE, x = 0.86, y = 1.29
 
     ros::Rate sleeper(100);
@@ -230,6 +239,9 @@ int main(int argc, char **argv) {
         geometry_msgs::Pose pose = get_robot_pos(listener, yaw);
         double prev_distance = pow(pose.position.x - goal.target_pose.pose.position.x, 2) + pow(pose.position.y - goal.target_pose.pose.position.y, 2);
 
+        if(count == 2){
+            drop_puck();
+        }
         while((ac.getState() != actionlib::SimpleClientGoalState::SUCCEEDED) && (has_moved_closer_or_in_time || heading_to_ramp)){
             bool avoided_collision = false;
             pose = get_robot_pos(listener, yaw);
@@ -274,13 +286,22 @@ int main(int argc, char **argv) {
                 }
             }*/
         }
-
-        if(pose_counter == 3){
-            //slap puck
+        if(count == 1){
+            ready_to_drop();
         }
+        grab_puck(true);
+        count++;
+
 
         goal.target_pose.pose.position.y = poses_array[2];
         goal.target_pose.pose.position.x = poses_array[3];
+
+        desired_yaw = -PI/2;
+        sy = sin(desired_yaw * 0.5);
+        cy = cos(desired_yaw * 0.5);
+
+        goal.target_pose.pose.orientation.z = cy;
+        goal.target_pose.pose.orientation.w = sy;
 
         pose_counter += 2;
 
@@ -1672,7 +1693,7 @@ bool ready_to_grab(bool is_vertical) {
     std_msgs::Int8MultiArray new_msg;
     if(!grabber_status.data) return false;
     if(is_vertical) {
-        if(grabber_status.data[0] != 1 
+        if(grabber_status.data[0] != 1
          || grabber_status.data[1] != 1
          || grabber_status.data[2] != 0
          || grabber_status.data[3] != 2) {
@@ -1693,7 +1714,7 @@ bool ready_to_grab(bool is_vertical) {
             return false;
         }
     }
-    return true; 
+    return true;
 }
 
 bool grab_puck(bool is_vertical) {
@@ -1761,4 +1782,3 @@ void drop_puck() {
     new_msg.data = grabber_msg_data;
     grabber_interface.set_msg(new_msg);
 }
-
