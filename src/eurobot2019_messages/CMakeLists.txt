@@ -13,6 +13,7 @@ add_message_files(
   FILES
   drop_motors.msg
   grabber_motors.msg
+  drop_command.msg
   pickup.msg
   grabber_motors.msg
   collision_avoidance.msg

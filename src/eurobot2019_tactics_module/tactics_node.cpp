@@ -20,20 +20,20 @@
 #include <algorithm>
 #include "message_interface.hpp"
 
-#define CLOSE_ENOUGH //When goal is close enough, such that we can ignore collision_avoidance around adjacent directions adjacent to goal direction
+#define CLOSE_ENOUGH 1.0//When goal is close enough, such that we can ignore collision_avoidance around adjacent directions adjacent to goal direction
 #define PI 3.1415926
-#define K //angle scoring constant
-#define Q //adjacency scoring constant
+#define K 1.0//angle scoring constant
+#define Q 1.0//adjacency scoring constant
 #define COLLISION_AVOIDANCE_MOVE 0.05 //Amount that robot moves away to,to avoid collision
 #define TOO_LONG 5000
-#define APPROACH_RADIUS 3 //distance away from puck robot must be at, to pick it up
+#define APPROACH_RADIUS 3.0 //distance away from puck robot must be at, to pick it up
 
 geometry_msgs::PoseArray poses;
 
 // Hardcoded pucks
 // sorry guys :'(
 int pucks_color[32] = {3,3,1,1,2,1,1,2,2,1,3,1,2,2,3,2,1,1,2,3,1,2,1,3,1,2,1,2,1,3,1,2};
-int poses[32][2] = {{0,1300},{0,1700},{450,450},{750,450},{1050,500},{450,2500},{750,2500},{1050,2500},{1050,925},{1050,1075},{975.1000},{1125,1000},{1800,834}.{1800,2166},{2000,125},{2000,225},{2000,325},{2000,2675},{2000,2775},{2000,2875},{1543,500},{1543,600},{1543,700},{1543,800},{1543,900},{1543,1000},{1543,2500},{1543,2400},{1543,2300},{1543,2200},{1543,2100},{1543,2000}};
+int poses_array[2][32] = {{0,1300},{0,1700},{450,450},{750,450},{1050,500},{450,2500},{750,2500},{1050,2500},{1050,925},{1050,1075},{975,1000},{1125,1000},{1800,834},{1800,2166},{2000,125},{2000,225},{2000,325},{2000,2675},{2000,2775},{2000,2875},{1543,500},{1543,600},{1543,700},{1543,800},{1543,900},{1543,1000},{1543,2500},{1543,2400},{1543,2300},{1543,2200},{1543,2100},{1543,2000}};
 bool isVertical[32] ={1,1,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1};
 
 
@@ -50,7 +50,7 @@ std_msgs::Int32 drop_command_r;
 
 void sub_d_r_Callback(const std_msgs::Int32::ConstPtr& msg)
 {
-    ROS_INFO("sub_d_r_Callback returned drop_command: [%d, %d, %d]", msg->left, msg->right, msg->middle);
+    ROS_INFO("sub_d_r_Callback returned queue: [%d]", msg->data);
     drop_command_r  = *msg;
 }
 
@@ -61,14 +61,14 @@ nav_msgs::MapMetaData map_metadata;
 
 void sub_map_Callback(const nav_msgs::OccupancyGrid::ConstPtr& msg)
 {
-    ROS_INFO("sub_map_metadeta_Callback returned map_metadeta");
+    ROS_INFO("sub_map_metadata_Callback returned map_metadata");
     map = *msg;
     got_map = true;
 }
 
-void sub_map_metadeta_Callback(const nav_msgs::MapMetaData::ConstPtr& msg)
+void sub_map_metadata_Callback(const nav_msgs::MapMetaData::ConstPtr& msg)
 {
-    ROS_INFO("sub_map_metadeta_Callback returned a map");
+    ROS_INFO("sub_map_metadata_Callback returned a map");
     map_metadata = *msg;
     got_map_metadata = true;
 }
@@ -83,7 +83,7 @@ void sub_collision_avoidance_Callback(const eurobot2019_messages::collision_avoi
 
 geometry_msgs::Pose get_robot_pos(tf::TransformListener& listener, double& yaw);
 void wallignore(double yaw, std::vector<int>& wall_vector, geometry_msgs::Pose pose);
-void wallignore_instance(double yaw, double x, double y, std::vector<char>& wall_vector);
+void wallignore_instance(double yaw, double x, double y, std::vector<int>& wall_vector);
 double anglescores(double yaw, double x, double y, int direction);
 double constrainAngle(double x);
 bool collision_check(double yaw, geometry_msgs::Pose pose, MoveBaseGoal goal, MoveBaseClient ac);
@@ -110,7 +110,7 @@ int main(int argc, char **argv) {
 
     ros::Subscriber sub_d_r = n.subscribe("drop_status_r", 10, sub_d_r_chatterCallback);
     ros::Subscriber sub_map = n.subscribe("map", 1, sub_map_chatterCallback);
-    ros::Subscriber sub_map_metadeta = n.subscribe("map_metadata", 1, sub_map_metadeta_Callback);
+    ros::Subscriber sub_map_metadata = n.subscribe("map_metadata", 1, sub_map_metadata_Callback);
     ros::Subscriber sub_collision_avoidance = n.subscribe("collision_avoidance", 1, sub_collision_avoidance_Callback);
 
     ServiceClient check_path = nh_.serviceClient<nav_msgs::getplan>("/move_base/make_plan");
@@ -122,7 +122,7 @@ int main(int argc, char **argv) {
     double resolution = map_metadata.resolution;
     int width = map_metadata.width;
     int height = map_metadata.height;
-    geometry_msgs::Pose origin = map_metadeta.origin;
+    geometry_msgs::Pose origin = map_metadata.origin;
 
     double collision_radius;
     if(!nh.getParam("tactics/collision_radius",
@@ -282,11 +282,11 @@ int main(int argc, char **argv) {
             pickup.pos_reached = true;
             pickup.is_vertical = is_vertical;
             pickup_interface.set_msg(pickup);
-            int pickup_status_msg;
+            std_msgs::Int32 pickup_status_msg;
             ros::spinOnce();
             pickup_interface.get_msg(pickup_status_msg);
 
-            while(pickup_status_msg > 0){
+            while(pickup_status_msg.data > 0){
                 ros::spinOnce();
                 pickup_interface.get_msg(pickup_status_msg)
                 if(is_vertical){
@@ -319,7 +319,7 @@ int main(int argc, char **argv) {
                               ac.cancelGoal();
                               pose = get_robot_pos(listener, yaw);
                               ros::spinOnce();
-                              if(collision_avoidance[0]){
+                              if(collision_avoidance.data[0]){
                                   double desired_yaw = PI/2;
                                   double x = pose.position.x + 0.05;
                                   double y = pose.position.y;
@@ -446,11 +446,11 @@ int main(int argc, char **argv) {
                             eurobot2019_messages::drop_command drop_command_msg;
                             drop_command_msg.left = 1;
                             drop_interface.set_msg(drop_command_msg);
-                            int drop_status_msg;
+                            std_msgs::Int32 drop_status_msg;
                             ros::spinOnce();
                             drop_interface.get_msg(drop_status_msg);
 
-                            while(drop_status_msg > 0){
+                            while(drop_status_msg.data > 0){
                                 ros::spinOnce();
                                 drop_interface.get_msg(drop_status_msg)
                             }
@@ -539,11 +539,11 @@ int main(int argc, char **argv) {
                             eurobot2019_messages::drop_command drop_command_msg;
                             drop_command_msg.right = 1;
                             drop_interface.set_msg(drop_command_msg);
-                            int drop_status_msg;
+                            std_msgs::Int32 drop_status_msg;
                             ros::spinOnce();
                             drop_interface.get_msg(drop_status_msg);
 
-                            while(drop_status_msg > 0){
+                            while(drop_status_msg.data > 0){
                                 ros::spinOnce();
                                 drop_interface.get_msg(drop_status_msg)
                             }
@@ -563,7 +563,7 @@ int main(int argc, char **argv) {
 
                         int puck_value;
 
-                        if ((puck_colours[i] = 2) || (puck_colours[i] = 1)){
+                        if ((pucks_color[i] = 2) || (pucks_color[i] = 1)){
                           puck_value = 6//value for green;
                         }
 
@@ -575,7 +575,7 @@ int main(int argc, char **argv) {
 
                   int chosen_puck = std::max_element(puck_score.begin(),puck_score.end()) - puck_score.begin();
                   geometry_msgs::Pose puck = poses.poses[chosen_puck];
-                  current_puck_colour = puck_colours[chosen_puck];
+                  current_puck_colour = pucks_color[chosen_puck];
                   is_vertical = is_vertical[chosen_puck];
 
                   geometry_msgs::PoseStamped Start;
@@ -642,7 +642,7 @@ int main(int argc, char **argv) {
 
                         int puck_value;
 
-                        if ((puck_colours[i] = 2) || (puck_colours[i] = 1)){
+                        if ((pucks_color[i] = 2) || (pucks_color[i] = 1)){
                           puck_value = 6//value for green;
                         }
 
@@ -654,7 +654,7 @@ int main(int argc, char **argv) {
 
                   int chosen_puck = std::max_element(puck_score.begin(),puck_score.end()) - puck_score.begin();
                   geometry_msgs::Pose puck = poses.poses[chosen_puck];
-                  current_puck_colour = puck_colours[chosen_puck];
+                  current_puck_colour = pucks_color[chosen_puck];
                   is_vertical = is_vertical[chosen_puck];
 
                   geometry_msgs::PoseStamped Start;
@@ -722,10 +722,10 @@ int main(int argc, char **argv) {
 
                     int puck_value;
 
-                    if (puck_colours[i] = 2){
+                    if (pucks_color[i] = 2){
                       puck_value = 8//value for green;
                     }
-                    else if (puck_colours[i] = 3){
+                    else if (pucks_color[i] = 3){
                       puck_value = 12//value for blue;
                     }
                     else{
@@ -736,7 +736,7 @@ int main(int argc, char **argv) {
 
               int chosen_puck = std::max_element(puck_score.begin(),puck_score.end()) - puck_score.begin();
               geometry_msgs::Pose puck = poses.poses[chosen_puck];
-              current_puck_colour = puck_colours[chosen_puck];
+              current_puck_colour = pucks_color[chosen_puck];
               is_vertical = is_vertical[chosen_puck];
 
               geometry_msgs::PoseStamped Start;
@@ -804,11 +804,11 @@ int main(int argc, char **argv) {
                 eurobot2019_messages::drop_command drop_command_msg;
                 drop_command_msg.right = 1;
                 drop_interface.set_msg(drop_command_msg);
-                int drop_status_msg;
+                std_msgs::Int32 drop_status_msg;
                 ros::spinOnce();
                 drop_interface.get_msg(drop_status_msg);
 
-                while(drop_status_msg > 0){
+                while(drop_status_msg.data > 0){
                     ros::spinOnce();
                     drop_interface.get_msg(drop_status_msg)
                 }
@@ -818,7 +818,7 @@ int main(int argc, char **argv) {
 
             blue_pucks -= puck_counter;
 
-            puck_limit = 4 - puck_counter;
+            int puck_limit = 4 - puck_counter;
 
             puck_counter = 0;
 
@@ -826,11 +826,11 @@ int main(int argc, char **argv) {
                 eurobot2019_messages::drop_command drop_command_msg;
                 drop_command_msg.left = 1;
                 drop_interface.set_msg(drop_command_msg);
-                int drop_status_msg;
+                std_msgs::Int32 drop_status_msg;
                 ros::spinOnce();
                 drop_interface.get_msg(drop_status_msg);
 
-                while(drop_status_msg > 0){
+                while(drop_status_msg.data > 0){
                     ros::spinOnce();
                     drop_interface.get_msg(drop_status_msg)
                 }
@@ -851,7 +851,7 @@ int main(int argc, char **argv) {
 
                 int puck_value;
 
-                if ((puck_colours[i] = 2) || (puck_colours[i] = 1)){
+                if ((pucks_color[i] = 2) || (pucks_color[i] = 1)){
                   puck_value = 6//value for green;
                 }
 
@@ -863,7 +863,7 @@ int main(int argc, char **argv) {
 
           int chosen_puck = std::max_element(puck_score.begin(),puck_score.end()) - puck_score.begin();
           geometry_msgs::Pose puck = poses.poses[chosen_puck];
-          current_puck_colour = puck_colours[chosen_puck];
+          current_puck_colour = pucks_color[chosen_puck];
           is_vertical = is_vertical[chosen_puck];
 
           geometry_msgs::PoseStamped Start;
@@ -923,7 +923,7 @@ int main(int argc, char **argv) {
         else{
             ROS_INFO("The base failed to move to next position and orientation");
             //Set goal another puck
-            //Assume receiving geometry_msgs::PoseArray poses, array of ints containing colours int* puck_colours[], array of bools containing whether or not is_vertical called is_vertical[]
+            //Assume receiving geometry_msgs::PoseArray poses, array of ints containing colours int* pucks_color[], array of bools containing whether or not is_vertical called is_vertical[]
 
             auto t2 = std::chrono::high_resolution_clock::now();
             std::chrono::duration<double, std::milli> total_time_span = total_time - t1;
@@ -1008,11 +1008,11 @@ int main(int argc, char **argv) {
                         eurobot2019_messages::drop_command drop_command_msg;
                         drop_command_msg.left = 1;
                         drop_interface.set_msg(drop_command_msg);
-                        int drop_status_msg;
+                        std_msgs::Int32 drop_status_msg;
                         ros::spinOnce();
                         drop_interface.get_msg(drop_status_msg);
 
-                        while(drop_status_msg > 0){
+                        while(drop_status_msg.data > 0){
                             ros::spinOnce();
                             drop_interface.get_msg(drop_status_msg)
                         }
@@ -1102,11 +1102,11 @@ int main(int argc, char **argv) {
                         eurobot2019_messages::drop_command drop_command_msg;
                         drop_command_msg.right = 1;
                         drop_interface.set_msg(drop_command_msg);
-                        int drop_status_msg;
+                        std_msgs::Int32 drop_status_msg;
                         ros::spinOnce();
                         drop_interface.get_msg(drop_status_msg);
 
-                        while(drop_status_msg > 0){
+                        while(drop_status_msg.data > 0){
                             ros::spinOnce();
                             drop_interface.get_msg(drop_status_msg)
                         }
@@ -1127,7 +1127,7 @@ int main(int argc, char **argv) {
 
                     int puck_value;
 
-                    if ((puck_colours[i] = 2) || (puck_colours[i] = 1)){
+                    if ((pucks_color[i] = 2) || (pucks_color[i] = 1)){
                       puck_value = 6//value for green;
                     }
 
@@ -1139,7 +1139,7 @@ int main(int argc, char **argv) {
 
               int chosen_puck = std::max_element(puck_score.begin(),puck_score.end()) - puck_score.begin();
               geometry_msgs::Pose puck = poses.poses[chosen_puck];
-              current_puck_colour = puck_colours[chosen_puck];
+              current_puck_colour = pucks_color[chosen_puck];
               is_vertical = is_vertical[chosen_puck];
 
               geometry_msgs::PoseStamped Start;
@@ -1206,7 +1206,7 @@ int main(int argc, char **argv) {
 
                     int puck_value;
 
-                    if ((puck_colours[i] = 2) || (puck_colours[i] = 1)){
+                    if ((pucks_color[i] = 2) || (pucks_color[i] = 1)){
                       puck_value = 6//value for green;
                     }
 
@@ -1218,7 +1218,7 @@ int main(int argc, char **argv) {
 
               int chosen_puck = std::max_element(puck_score.begin(),puck_score.end()) - puck_score.begin();
               geometry_msgs::Pose puck = poses.poses[chosen_puck];
-              current_puck_colour = puck_colours[chosen_puck];
+              current_puck_colour = pucks_color[chosen_puck];
               is_vertical = is_vertical[chosen_puck];
 
               geometry_msgs::PoseStamped Start;
@@ -1286,10 +1286,10 @@ int main(int argc, char **argv) {
 
                 int puck_value;
 
-                if (puck_colours[i] = 2){
+                if (pucks_color[i] = 2){
                   puck_value = 8//value for green;
                 }
-                else if (puck_colours[i] = 3){
+                else if (pucks_color[i] = 3){
                   puck_value = 12//value for blue;
                 }
                 else{
@@ -1300,7 +1300,7 @@ int main(int argc, char **argv) {
 
               int chosen_puck = std::max_element(puck_score.begin(),puck_score.end()) - puck_score.begin();
               geometry_msgs::Pose puck = poses.poses[chosen_puck];
-              current_puck_colour = puck_colours[chosen_puck];
+              current_puck_colour = pucks_color[chosen_puck];
               is_vertical = is_vertical[chosen_puck];
 
               geometry_msgs::PoseStamped Start;
@@ -1400,7 +1400,7 @@ void wallignore(double yaw, std::vector<int>& wall_vector, geometry_msgs::Pose p
     double resolution = map_metadata.resolution;
     int width = map_metadata.width;
     int height = map_metadata.height;
-    geometry_msgs::Pose origin = map_metadeta.origin;
+    geometry_msgs::Pose origin = map_metadata.origin;
 
     double base_link_x = pose.position.x - origin.position.x;
     double base_link_y = pose.position.y - origin.position.y;
@@ -1456,7 +1456,7 @@ void wallignore(double yaw, std::vector<int>& wall_vector, geometry_msgs::Pose p
     }
 
     for(int i = 0; i < 8; i++){
-        if(bool_vector[i]){
+        if(bool_wall_vector[i]){
             wall_vector.push_back(i);
         }
     }
@@ -1532,6 +1532,10 @@ geometry_msgs::Pose get_robot_pos(tf::TransformListener& listener, double& yaw){
 }
 
 double space_distance(double  yaw, geometry_msgs::Pose pose, int direction){
+    double resolution = map_metadata.resolution;
+    int width = map_metadata.width;
+    int height = map_metadata.height;
+    geometry_msgs::Pose origin = map_metadata.origin;
 
     double base_link_x = pose.position.x - map_metadata.origin.position.x;
     double base_link_y = pose.position.y - map_metadata.origin.position.y;
@@ -1540,25 +1544,29 @@ double space_distance(double  yaw, geometry_msgs::Pose pose, int direction){
     int base_link_pixel_y = round((base_link_y)/resolution);
     bool found_occupied = false;
 
+    double distance_to_occupied_squared;
+
       for(int i = base_link_pixel_x; i >= 0 && i <= width && found_occupied; i++){
-          base_link_x += resolution
-          base_link_y += resoultion * tan(motion_angle)
+          base_link_x += resolution;
+          base_link_y += resolution * tan(motion_angle);
 
           int pixel_x = round((base_link_x)/resolution);
           int pixel_y = round((base_link_y)/resolution);
 
           if(pixel_x <= 0 || pixel_y <= 0 || pixel_x >= width || pixel_y >= height){
               found_occupied = true;
-              double distance_to_occupied = pow((base_link_x - (pose.position.x - map_metadata.origin.position.x)), 2) + pow((base_link_y - (pose.position.y - map_metadata.origin.position.y)), 2)
+              distance_to_occupied_squared = pow((base_link_x - (pose.position.x - map_metadata.origin.position.x)), 2) + pow((base_link_y - (pose.position.y - map_metadata.origin.position.y)), 2);
           }
 
           else{
               if(map.data[pixel_x + pixel_y * width] == 100){
                   found_occupied = true;
-                  double distance_to_occupied = pow((base_link_x - (pose.position.x - map_metadata.origin.position.x)), 2) + pow((base_link_y - (pose.position.y - map_metadata.origin.position.y)), 2)
+                  distance_to_occupied_squared = pow((base_link_x - (pose.position.x - map_metadata.origin.position.x)), 2) + pow((base_link_y - (pose.position.y - map_metadata.origin.position.y)), 2);
               }
           }
       }
+
+      return distance_to_occupied_squared;
 }
 
 bool collision_check(double yaw, geometry_msgs::Pose pose, move_base_msgs::MoveBaseGoal goal, MoveBaseClient ac){
@@ -1580,7 +1588,7 @@ for(int i = 0, j = 0; i < 8; i++){
   }
 
   else{
-    if(collision_avoidance[i]){
+    if(collision_avoidance.data[i]){
       blocked_by_non_wall = true;
       blocked_directions.push_back(i);
     }
@@ -1610,7 +1618,7 @@ if(blocked_by_non_wall){
     else{
       if(i == 0){
         if(blocked_directions[1] == 1 && blocked_directions[blocked_directions.size() - 1] == 7){
-            if (pow(goal.target_pose.pose.position.x - pose.position.x, 2) + pow(goal.target_pose.pose.position.y - pose.position.y, 2)) <= CLOSE_ENOUGH){
+            if((pow(goal.target_pose.pose.position.x - pose.position.x, 2.0) + pow(goal.target_pose.pose.position.y - pose.position.y, 2.0)) <= CLOSE_ENOUGH){
                 std::vector<int> wall_vector_instance;
                 wallignore_instance(yaw, goal.target_pose.pose.position.x - pose.position.x, goal.target_pose.pose.position.y - pose.position.y, wall_vector_instance);
                 for(int k = 0; k < wall_vector_instance.size(); k++){
@@ -1625,7 +1633,7 @@ if(blocked_by_non_wall){
 
 
         else if(blocked_directions[1] == 1 || blocked_directions[blocked_directions.size() - 1] == 7){
-            double distance_to_goal = space_distance(yaw, pose, i);
+            double distance_to_occupied_squared = space_distance(yaw, pose, i);
             double angle_to_goal = fabs(anglescores(yaw, goal.target_pose.pose.position.x - pose.position.x, goal.target_pose.pose.position.y - pose.position.y, i));
             scores.push_back((distance_to_occupied_squared*K)/(angle_to_goal*Q));
             directions.push_back(i);
@@ -1633,8 +1641,8 @@ if(blocked_by_non_wall){
         }
 
         else{
-            double distance_to_goal = space_distance(yaw, pose, i);
-            double angle_to_goal = fabs(anglescores(yaw, goal.target_pose.pose.position.x - pose.position.x, goal.target_pose.pose.position.y - pose.position.y, i);
+            double distance_to_occupied_squared = space_distance(yaw, pose, i);
+            double angle_to_goal = fabs(anglescores(yaw, goal.target_pose.pose.position.x - pose.position.x, goal.target_pose.pose.position.y - pose.position.y, i));
             scores.push_back((distance_to_occupied_squared*K)/angle_to_goal);
             directions.push_back(i);
           //none of them are, no score penalty
@@ -1644,7 +1652,7 @@ if(blocked_by_non_wall){
 
       if(i == 7){
         if(blocked_directions[1] == 0 && blocked_directions[blocked_directions.size() - 1] == 6){
-            if (pow(goal.target_pose.pose.position.x - pose.position.x, 2) + pow(goal.target_pose.pose.position.y - pose.position.y, 2)) <= CLOSE_ENOUGH){
+            if ((pow(goal.target_pose.pose.position.x - pose.position.x, 2.0) + pow(goal.target_pose.pose.position.y - pose.position.y, 2.0)) <= CLOSE_ENOUGH){
                 std::vector<int> wall_vector_instance;
                 wallignore_instance(yaw, goal.target_pose.pose.position.x - pose.position.x, goal.target_pose.pose.position.y - pose.position.y, wall_vector_instance);
                 for(int k = 0; k < wall_vector_instance.size(); k++){
@@ -1659,7 +1667,7 @@ if(blocked_by_non_wall){
 
 
         else if(blocked_directions[1] == 0 || blocked_directions[blocked_directions.size() - 1] == 6){
-            double distance_to_goal = space_distance(yaw, pose, i);
+            double distance_to_occupied_squared = space_distance(yaw, pose, i);
             double angle_to_goal = fabs(anglescores(yaw, goal.target_pose.pose.position.x - pose.position.x, goal.target_pose.pose.position.y - pose.position.y, i));
             scores.push_back((distance_to_occupied_squared*K)/(angle_to_goal*Q));
             directions.push_back(i);
@@ -1667,7 +1675,7 @@ if(blocked_by_non_wall){
         }
 
         else{
-            double distance_to_goal = space_distance(yaw, pose, i);
+            double distance_to_occupied_squared = space_distance(yaw, pose, i);
             double angle_to_goal = fabs(anglescores(yaw, goal.target_pose.pose.position.x - pose.position.x, goal.target_pose.pose.position.y - pose.position.y, i));
             scores.push_back((distance_to_occupied_squared*K)/angle_to_goal);
             directions.push_back(i);
@@ -1678,7 +1686,7 @@ if(blocked_by_non_wall){
 
       else{
         if(blocked_directions[r] == i - 1 && blocked_directions[r + 1] == i + 1){
-            if (pow(goal.target_pose.pose.position.x - pose.position.x, 2) + pow(goal.target_pose.pose.position.y - pose.position.y, 2)) <= CLOSE_ENOUGH){
+            if ((pow(goal.target_pose.pose.position.x - pose.position.x, 2.0) + pow(goal.target_pose.pose.position.y - pose.position.y, 2.0)) <= CLOSE_ENOUGH){
                 std::vector<int> wall_vector_instance;
                 wallignore_instance(yaw, goal.target_pose.pose.position.x - pose.position.x, goal.target_pose.pose.position.y - pose.position.y, wall_vector_instance);
                 for(int k = 0; k < wall_vector_instance.size(); k++){
@@ -1692,7 +1700,7 @@ if(blocked_by_non_wall){
         }
 
         else if(blocked_directions[r] == i - 1 || blocked_directions[r + 1] == i + 1){
-            double distance_to_goal = space_distance(yaw, pose, i);
+            double distance_to_occupied_squared = space_distance(yaw, pose, i);
             double angle_to_goal = fabs(anglescores(yaw, goal.target_pose.pose.position.x - pose.position.x, goal.target_pose.pose.position.y - pose.position.y, i));
             scores.push_back((distance_to_occupied_squared*K)/(angle_to_goal*Q));
             directions.push_back(i);
@@ -1722,7 +1730,7 @@ if(blocked_by_non_wall){
 
     for(int i = 0; i < scores.size(); i++){
         if(max_score < scores[i]){
-            max_score = score[i];
+            max_score = scores[i];
             max_index = i;
         }
     }
