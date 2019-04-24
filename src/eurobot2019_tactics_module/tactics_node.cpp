@@ -498,16 +498,25 @@ int main(int argc, char **argv) {
           Start.pose = pose.pose;
 
           if(is_vertical){
+            double x = puck.pose.position.x + APPROACH_RADIUS);
+            double y = puck.pose.position.y ;
 
+            double desired_yaw = PI/2;
+
+            double cy = cos(desired_yaw * 0.5);
+            double sy = sin(desired_yaw * 0.5);
           }
-          double approach_angle = atan2((puck.pose.position.y - pose.pose.position.y), (puck.pose.position.x - pose.pose.position.x));
-          double x = puck.pose.position.x - (APPROACH_RADIUS * cos(approach_angle));
-          double y = puck.pose.position.y - (APPROACH_RADIUS * sin(approach_angle));
+          else {
+            double approach_angle = atan2((puck.pose.position.y - pose.pose.position.y), (puck.pose.position.x - pose.pose.position.x));
+            double x = puck.pose.position.x - (APPROACH_RADIUS * cos(approach_angle));
+            double y = puck.pose.position.y - (APPROACH_RADIUS * sin(approach_angle));
 
-          double desired_yaw = constrainAngle(approach_angle - PI/2);
+            double desired_yaw = constrainAngle(approach_angle - PI/2);
 
-          double cy = cos(desired_yaw * 0.5);
-          double sy = sin(desired_yaw * 0.5);
+            double cy = cos(desired_yaw * 0.5);
+            double sy = sin(desired_yaw * 0.5);
+          }
+
 
           Goal.header.seq = 0;
           Goal.header.stamp = ros::Time::now();
