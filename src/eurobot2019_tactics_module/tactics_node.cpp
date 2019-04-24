@@ -397,16 +397,50 @@ int main(int argc, char **argv) {
 
         else if(heading_to_ramp){
             heading_to_ramp = false;
-            for(int i = 0; i < blue_pucks; i++){
-                //drop all blue pucks
+            final_stage = true;
+
+            int puck_counter = 0;
+
+            for(int i = 0; i < blue_pucks && puck_counter <= 5; i++, puck_counter++){
+                eurobot2019_messages::drop_command drop_command_msg;
+                drop_command_msg.right = 1;
+                drop_interface.set_msg(drop_command_msg);
+                int drop_status_msg;
+                nh.spinOnce();
+                drop_interface.get_msg(drop_status_msg);
+
+                while(drop_status_msg > 0){
+                    nh.spinOnce();
+                    drop_interface.get_msg(drop_status_msg)
+                }
             }
 
-            score += blue_pucks * 12;
-            score += green_pucks * 8;
+            score += puck_counter * 12;
+
+            blue_pucks -= puck_counter;
+
+            puck_limit = 5 - puck_counter;
+            puck_counter = 0;
+
+            for(int i = 0; i < green_pucks && puck_counter <= 5; i++, puck_counter++){
+                eurobot2019_messages::drop_command drop_command_msg;
+                drop_command_msg.left = 1;
+                drop_interface.set_msg(drop_command_msg);
+                int drop_status_msg;
+                nh.spinOnce();
+                drop_interface.get_msg(drop_status_msg);
+
+                while(drop_status_msg > 0){
+                    nh.spinOnce();
+                    drop_interface.get_msg(drop_status_msg)
+                }
+            }
+
+            score += puck_counter * 8;
+
+            green_pucks -= puck_counter;
 
             //head to next puck
-
-            final_stage = true;
         }
 
         else{
