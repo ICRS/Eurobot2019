@@ -2,7 +2,8 @@
 #include <ros/ros.h>
 #include <eurobot2019_messages/grabber_motors.h>
 #include <eurobot2019_messages/pickup.h>
-#include <eurobot2019_messages::collision_avoidance.h>
+#include <eurobot2019_messages/drop_command.h>
+#include <eurobot2019_messages/collision_avoidance.h>
 #include <tf/transform_listener.h>
 #include "geometry_msgs/Twist.h"
 #include <move_base_msgs/MoveBaseAction.h>
@@ -10,7 +11,7 @@
 #include "geometry_msgs/Pose.h"
 #include "geometry_msgs/Point.h"
 #include "geometry_msgs/PoseArray.h"
-#include "nav_msgs/MapMetaData.h.h"
+#include "nav_msgs/MapMetaData.h"
 #include "nav_msgs/OccupancyGrid.h"
 #include "nav_msgs/GetPlan.h"
 #include "std_msgs/Int32.h"
@@ -27,14 +28,9 @@
 #define TOO_LONG 5000
 #define APPROACH_RADIUS 3 //distance away from puck robot must be at, to pick it up
 
-typedef actionlib::SimpleActionClient<move_base_msgs::MoveBaseAction> MoveBaseClient;
+geometry_msgs::PoseArray poses;
 
-struct Quaterniond{
-    double w;
-    double x;
-    double y;
-    double z;
-};
+typedef actionlib::SimpleActionClient<move_base_msgs::MoveBaseAction> MoveBaseClient;
 
 // Function to check if floating point numbers are close enough
 bool approx_equal(float a, float b) {
@@ -77,12 +73,11 @@ void sub_collision_avoidance_Callback(const eurobot2019_messages::collision_avoi
 }
 
 geometry_msgs::Pose get_robot_pos(tf::TransformListener& listener, double& yaw);
-void wallignore(double yaw, std::vector<int>& wall_vector, geometry_msg::Pose pose);
+void wallignore(double yaw, std::vector<int>& wall_vector, geometry_msgs::Pose pose);
 void wallignore_instance(double yaw, double x, double y, std::vector<char>& wall_vector);
 double anglescores(double yaw, double x, double y, int direction);
 double constrainAngle(double x);
-Quaterniond toQuaternion(double yaw, double pitch, double roll);
-bool collision_check(double yaw, geometry_msg::Pose pose, MoveBaseGoal goal, MoveBaseClient ac);
+bool collision_check(double yaw, geometry_msgs::Pose pose, MoveBaseGoal goal, MoveBaseClient ac);
 double space_distance(double  yaw, geometry_msgs::Pose pose, int direction);
 
 int main(int argc, char **argv) {
@@ -106,19 +101,19 @@ int main(int argc, char **argv) {
 
     ros::Subscriber sub_d_r = n.subscribe("drop_status_r", 10, sub_d_r_chatterCallback);
     ros::Subscriber sub_map = n.subscribe("map", 1, sub_map_chatterCallback);
-    ros::Subscriber sub_map_metadeta = n.subscribe("map", 1, sub_map_metadeta_Callback);
+    ros::Subscriber sub_map_metadeta = n.subscribe("map_metadata", 1, sub_map_metadeta_Callback);
     ros::Subscriber sub_collision_avoidance = n.subscribe("collision_avoidance", 1, sub_collision_avoidance_Callback);
 
     ServiceClient check_path = nh_.serviceClient<nav_msgs::getplan>("/move_base/make_plan");
 
     do{
-        nh.spinOnce();
+        ros::spinOnce();
     }while(!got_map && !got_map_metadata);
 
     double resolution = map_metadata.resolution;
     int width = map_metadata.width;
     int height = map_metadata.height;
-    geometry_msg::Pose origin = map_metadeta.origin;
+    geometry_msgs::Pose origin = map_metadeta.origin;
 
     double collision_radius;
     if(!nh.getParam("tactics/collision_radius",
@@ -216,19 +211,19 @@ int main(int argc, char **argv) {
         static auto t3 = std::chrono::high_resolution_clock::now();
         bool has_moved_closer_or_in_time = true;
         geometry_msgs::Pose pose = get_robot_pos(listener, yaw);
-        double prev_distance = pow(pose.pose.position.x - goal.target_pose.pose.position.x, 2) + pow(pose.pose.position.y - goal.target_pose.pose.position.y, 2);
+        double prev_distance = pow(pose.position.x - goal.target_pose.pose.position.x, 2) + pow(pose.position.y - goal.target_pose.pose.position.y, 2);
 
         while((ac.getState() != actionlib::SimpleClientGoalState::SUCCEEDED) && (has_moved_closer_or_in_time || heading_to_ramp)){
             bool avoided_collision = false;
             pose = get_robot_pos(listener, yaw);
-            double distance = pow(pose.pose.position.x - goal.target_pose.pose.position.x, 2) + pow(pose.pose.position.y - goal.target_pose.pose.position.y, 2);
-            nh.spinOnce();
+            double distance = pow(pose.position.x - goal.target_pose.pose.position.x, 2) + pow(pose.position.y - goal.target_pose.pose.position.y, 2);
+            ros::spinOnce();
             //check collision avoidance
 
             static auto t4 = std::chrono::high_resolution_clock::now();
             while(collision_check(yaw, pose, goal, ac)){
                 avoided_collision = true;
-                nh.spinOnce();
+                ros::spinOnce();
                 pose = get_robot_pos(listener, yaw);
             }
 
@@ -279,18 +274,18 @@ int main(int argc, char **argv) {
             pickup.is_vertical = is_vertical;
             pickup_interface.set_msg(pickup);
             int pickup_status_msg;
-            nh.spinOnce();
+            ros::spinOnce();
             pickup_interface.get_msg(pickup_status_msg);
 
             while(pickup_status_msg > 0){
-                nh.spinOnce();
+                ros::spinOnce();
                 pickup_interface.get_msg(pickup_status_msg)
                 if(is_vertical){
                   if(pickup_status == 4){
                       pose = get_robot_pos(listener, yaw);
                       double desired_yaw = PI/2;
-                      double x = pose.pose.position.x + 0.05;
-                      double y = pose.pose.position.y;
+                      double x = pose.position.x + 0.05;
+                      double y = pose.position.y;
                       double cy = cos(desired_yaw * 0.5);
                       double sy = sin(desired_yaw * 0.5);
 
@@ -307,24 +302,24 @@ int main(int argc, char **argv) {
 
                           while(collision_check(yaw, pose, goal, ac)){
                               avoided_collision = true;
-                              nh.spinOnce();
+                              ros::spinOnce();
                               pose = get_robot_pos(listener, yaw);
                           }
 
                           if(avoided_collision){
                               ac.cancelGoal();
                               pose = get_robot_pos(listener, yaw);
-                              nh.spinOnce();
+                              ros::spinOnce();
                               if(collision_avoidance[0]){
                                   double desired_yaw = PI/2;
-                                  double x = pose.pose.position.x + 0.05;
-                                  double y = pose.pose.position.y;
+                                  double x = pose.position.x + 0.05;
+                                  double y = pose.position.y;
                                   double cy = cos(desired_yaw * 0.5);
                                   double sy = sin(desired_yaw * 0.5);
 
                                   goal.pose.position.x = x;
                                   goal.pose.position.y = y;
-                                  goal.pose.orientation = pose.pose.orientation;
+                                  goal.pose.orientation = pose.orientation;
                                   ac.sendGoal(goal);
                               }
                           }
@@ -343,7 +338,7 @@ int main(int argc, char **argv) {
             if ((((pucks_taken < 4 && total_time_span.count()) > 80000) || pucks_taken >= 4) && !final_stage){//rethink this
                //Set goal to ramp
               pose = get_robot_pos(listener, yaw);
-              nh.spinOnce();
+              ros::spinOnce();
               double desired_yaw = ramp_yaw;//0 or pi?
               double x = ramp.x;//x of unloading POSITION
               double y = ramp.y;//y of unloading position
@@ -370,9 +365,9 @@ int main(int argc, char **argv) {
                         Start.header.seq = 0;
                         Start.header.stamp = ros::Time::now();
                         Start.header.frame_id = "/map";
-                        Start.pose = pose.pose;
+                        Start.pose = pose;
 
-                        double approach_angle = atan2((green.y - pose.pose.position.y), (green.x - pose.pose.position.x));
+                        double approach_angle = atan2((green.y - pose.position.y), (green.x - pose.position.x));
                         double x = green.x - (APPROACH_RADIUS * cos(approach_angle));
                         double y = green.y - (APPROACH_RADIUS * sin(approach_angle));
 
@@ -396,7 +391,7 @@ int main(int argc, char **argv) {
 
                         ROS_INFO("Make plan: %d", (check_path.call(srv) ? 1 : 0));
 
-                        while(response.plan.poses.size() == 0){
+                        while(srv.response.plan.poses.size() == 0){
                             approach_angle = fmod(rand(), 2*PI);
                             Goal.pose.position.x = green.x - (APPROACH_RADIUS * cos(approach_angle));
                             Goal.pose.position.y = green.y - (APPROACH_RADIUS * sin(approach_angle));
@@ -410,7 +405,7 @@ int main(int argc, char **argv) {
                             Goal.pose.orientation.w = sy;
 
                             srv.request.goal = Goal;
-                            check_path.call(srv);
+                            ROS_INFO("Make plan: %d", (check_path.call(srv) ? 1 : 0));
                         }
 
                         ROS_INFO("Plan size: %d", srv.response.plan.poses.size());
@@ -425,7 +420,7 @@ int main(int argc, char **argv) {
 
                             while(collision_check(yaw, pose, goal, ac)){
                                 avoided_collision = true;
-                                nh.spinOnce();
+                                ros::spinOnce();
                                 pose = get_robot_pos(listener, yaw);
                             }
 
@@ -443,11 +438,11 @@ int main(int argc, char **argv) {
                             drop_command_msg.left = 1;
                             drop_interface.set_msg(drop_command_msg);
                             int drop_status_msg;
-                            nh.spinOnce();
+                            ros::spinOnce();
                             drop_interface.get_msg(drop_status_msg);
 
                             while(drop_status_msg > 0){
-                                nh.spinOnce();
+                                ros::spinOnce();
                                 drop_interface.get_msg(drop_status_msg)
                             }
                         }
@@ -464,9 +459,9 @@ int main(int argc, char **argv) {
                         Start.header.seq = 0;
                         Start.header.stamp = ros::Time::now();
                         Start.header.frame_id = "/map";
-                        Start.pose = pose.pose;
+                        Start.pose = pose;
 
-                        double approach_angle = atan2((red.y - pose.pose.position.y), (red.x - pose.pose.position.x));
+                        double approach_angle = atan2((red.y - pose.position.y), (red.x - pose.position.x));
                         double x = red.x - (APPROACH_RADIUS * cos(approach_angle));
                         double y = red.y - (APPROACH_RADIUS * sin(approach_angle));
 
@@ -490,7 +485,7 @@ int main(int argc, char **argv) {
 
                         ROS_INFO("Make plan: %d", (check_path.call(srv) ? 1 : 0));
 
-                        while(response.plan.poses.size() == 0){
+                        while(srv.response.plan.poses.size() == 0){
                             approach_angle = fmod(rand(), 2*PI);
                             Goal.pose.position.x = red.x - (APPROACH_RADIUS * cos(approach_angle));
                             Goal.pose.position.y = red.y - (APPROACH_RADIUS * sin(approach_angle));
@@ -504,7 +499,7 @@ int main(int argc, char **argv) {
                             Goal.pose.orientation.w = sy;
 
                             srv.request.goal = Goal;
-                            check_path.call(srv);
+                            ROS_INFO("Make plan: %d", (check_path.call(srv) ? 1 : 0));
                         }
 
                         ROS_INFO("Plan size: %d", srv.response.plan.poses.size());
@@ -519,7 +514,7 @@ int main(int argc, char **argv) {
 
                             while(collision_check(yaw, pose, goal, ac)){
                                 avoided_collision = true;
-                                nh.spinOnce();
+                                ros::spinOnce();
                                 pose = get_robot_pos(listener, yaw);
                             }
 
@@ -536,11 +531,11 @@ int main(int argc, char **argv) {
                             drop_command_msg.right = 1;
                             drop_interface.set_msg(drop_command_msg);
                             int drop_status_msg;
-                            nh.spinOnce();
+                            ros::spinOnce();
                             drop_interface.get_msg(drop_status_msg);
 
                             while(drop_status_msg > 0){
-                                nh.spinOnce();
+                                ros::spinOnce();
                                 drop_interface.get_msg(drop_status_msg)
                             }
                         }
@@ -553,9 +548,9 @@ int main(int argc, char **argv) {
                     //head to next puck
                     std::vector <double> puck_score;
                     pose = get_robot_pos(listener, yaw);
-                    nh.spinOnce();
+                    ros::spinOnce();
                     for(int i = 0; i < poses.poses.size(); i++){
-                        double puck_distance = pow(poses.poses[i].position.x - pose.pose.position.x, 2) + pow(poses.poses[i].position.y - pose.pose.position.y, 2);
+                        double puck_distance = pow(poses.poses[i].position.x - pose.position.x, 2) + pow(poses.poses[i].position.y - pose.position.y, 2);
 
                         int puck_value;
 
@@ -580,11 +575,11 @@ int main(int argc, char **argv) {
                   Start.header.seq = 0;
                   Start.header.stamp = ros::Time::now();
                   Start.header.frame_id = "/map";
-                  Start.pose = pose.pose;
+                  Start.pose = pose;
 
-                  double approach_angle = atan2((puck.pose.position.y - pose.pose.position.y), (puck.pose.position.x - pose.pose.position.x));
-                  double x = puck.pose.position.x - (APPROACH_RADIUS * cos(approach_angle));
-                  double y = puck.pose.position.y - (APPROACH_RADIUS * sin(approach_angle));
+                  double approach_angle = atan2((puck.position.y - pose.position.y), (puck.position.x - pose.position.x));
+                  double x = puck.position.x - (APPROACH_RADIUS * cos(approach_angle));
+                  double y = puck.position.y - (APPROACH_RADIUS * sin(approach_angle));
 
                   double desired_yaw = constrainAngle(approach_angle - PI/2);
 
@@ -606,10 +601,10 @@ int main(int argc, char **argv) {
 
                   ROS_INFO("Make plan: %d", (check_path.call(srv) ? 1 : 0));
 
-                  while(response.plan.poses.size() == 0){
+                  while(srv.response.plan.poses.size() == 0){
                       approach_angle = fmod(rand(), 2*PI);
-                      Goal.pose.position.x = puck.pose.position.x - (APPROACH_RADIUS * cos(approach_angle));
-                      Goal.pose.position.y = puck.pose.position.y - (APPROACH_RADIUS * sin(approach_angle));
+                      Goal.pose.position.x = puck.position.x - (APPROACH_RADIUS * cos(approach_angle));
+                      Goal.pose.position.y = puck.position.y - (APPROACH_RADIUS * sin(approach_angle));
 
                       desired_yaw = constrainAngle(approach_angle - PI/2);
 
@@ -620,7 +615,7 @@ int main(int argc, char **argv) {
                       Goal.pose.orientation.w = sy;
 
                       srv.request.goal = Goal;
-                      check_path.call(srv);
+                      ROS_INFO("Make plan: %d", (check_path.call(srv) ? 1 : 0));
                   }
 
                   ROS_INFO("Plan size: %d", srv.response.plan.poses.size());
@@ -632,9 +627,9 @@ int main(int argc, char **argv) {
                     //head to next puck
                     std::vector <double> puck_score;
                     pose = get_robot_pos(listener, yaw);
-                    nh.spinOnce();
+                    ros::spinOnce();
                     for(int i = 0; i < poses.poses.size(); i++){
-                        double puck_distance = pow(poses.poses[i].position.x - pose.pose.position.x, 2) + pow(poses.poses[i].position.y - pose.pose.position.y, 2);
+                        double puck_distance = pow(poses.poses[i].position.x - pose.position.x, 2) + pow(poses.poses[i].position.y - pose.position.y, 2);
 
                         int puck_value;
 
@@ -659,11 +654,11 @@ int main(int argc, char **argv) {
                   Start.header.seq = 0;
                   Start.header.stamp = ros::Time::now();
                   Start.header.frame_id = "/map";
-                  Start.pose = pose.pose;
+                  Start.pose = pose;
 
-                  double approach_angle = atan2((puck.pose.position.y - pose.pose.position.y), (puck.pose.position.x - pose.pose.position.x));
-                  double x = puck.pose.position.x - (APPROACH_RADIUS * cos(approach_angle));
-                  double y = puck.pose.position.y - (APPROACH_RADIUS * sin(approach_angle));
+                  double approach_angle = atan2((puck.position.y - pose.position.y), (puck.position.x - pose.position.x));
+                  double x = puck.position.x - (APPROACH_RADIUS * cos(approach_angle));
+                  double y = puck.position.y - (APPROACH_RADIUS * sin(approach_angle));
 
                   double desired_yaw = constrainAngle(approach_angle - PI/2);
 
@@ -685,10 +680,10 @@ int main(int argc, char **argv) {
 
                   ROS_INFO("Make plan: %d", (check_path.call(srv) ? 1 : 0));
 
-                  while(response.plan.poses.size() == 0){
+                  while(srv.response.plan.poses.size() == 0){
                       approach_angle = fmod(rand(), 2*PI);
-                      Goal.pose.position.x = puck.pose.position.x - (APPROACH_RADIUS * cos(approach_angle));
-                      Goal.pose.position.y = puck.pose.position.y - (APPROACH_RADIUS * sin(approach_angle));
+                      Goal.pose.position.x = puck.position.x - (APPROACH_RADIUS * cos(approach_angle));
+                      Goal.pose.position.y = puck.position.y - (APPROACH_RADIUS * sin(approach_angle));
 
                       desired_yaw = constrainAngle(approach_angle - PI/2);
 
@@ -699,7 +694,7 @@ int main(int argc, char **argv) {
                       Goal.pose.orientation.w = sy;
 
                       srv.request.goal = Goal;
-                      check_path.call(srv);
+                      ROS_INFO("Make plan: %d", (check_path.call(srv) ? 1 : 0));
                   }
 
                   ROS_INFO("Plan size: %d", srv.response.plan.poses.size());
@@ -712,9 +707,9 @@ int main(int argc, char **argv) {
                 //Set goal next puck
                 std::vector <double> puck_score;
                 pose = get_robot_pos(listener, yaw);
-                nh.spinOnce();
+                ros::spinOnce();
                 for(int i = 0; i < poses.poses.size(); i++){
-                    double puck_distance = pow(poses.poses[i].position.x - pose.pose.position.x, 2) + pow(poses.poses[i].position.y - pose.pose.position.y, 2);
+                    double puck_distance = pow(poses.poses[i].position.x - pose.position.x, 2) + pow(poses.poses[i].position.y - pose.position.y, 2);
 
                     int puck_value;
 
@@ -741,11 +736,11 @@ int main(int argc, char **argv) {
               Start.header.seq = 0;
               Start.header.stamp = ros::Time::now();
               Start.header.frame_id = "/map";
-              Start.pose = pose.pose;
+              Start.pose = pose;
 
-              double approach_angle = atan2((puck.pose.position.y - pose.pose.position.y), (puck.pose.position.x - pose.pose.position.x));
-              double x = puck.pose.position.x - (APPROACH_RADIUS * cos(approach_angle));
-              double y = puck.pose.position.y - (APPROACH_RADIUS * sin(approach_angle));
+              double approach_angle = atan2((puck.position.y - pose.position.y), (puck.position.x - pose.position.x));
+              double x = puck.position.x - (APPROACH_RADIUS * cos(approach_angle));
+              double y = puck.position.y - (APPROACH_RADIUS * sin(approach_angle));
 
               double desired_yaw = constrainAngle(approach_angle - PI/2);
 
@@ -767,10 +762,10 @@ int main(int argc, char **argv) {
 
               ROS_INFO("Make plan: %d", (check_path.call(srv) ? 1 : 0));
 
-              while(response.plan.poses.size() == 0){
+              while(srv.response.plan.poses.size() == 0){
                   approach_angle = fmod(rand(), 2*PI);
-                  Goal.pose.position.x = puck.pose.position.x - (APPROACH_RADIUS * cos(approach_angle));
-                  Goal.pose.position.y = puck.pose.position.y - (APPROACH_RADIUS * sin(approach_angle));
+                  Goal.pose.position.x = puck.position.x - (APPROACH_RADIUS * cos(approach_angle));
+                  Goal.pose.position.y = puck.position.y - (APPROACH_RADIUS * sin(approach_angle));
 
                   desired_yaw = constrainAngle(approach_angle - PI/2);
 
@@ -781,7 +776,7 @@ int main(int argc, char **argv) {
                   Goal.pose.orientation.w = sy;
 
                   srv.request.goal = Goal;
-                  check_path.call(srv);
+                  ROS_INFO("Make plan: %d", (check_path.call(srv) ? 1 : 0));
               }
 
               ROS_INFO("Plan size: %d", srv.response.plan.poses.size());
@@ -801,11 +796,11 @@ int main(int argc, char **argv) {
                 drop_command_msg.right = 1;
                 drop_interface.set_msg(drop_command_msg);
                 int drop_status_msg;
-                nh.spinOnce();
+                ros::spinOnce();
                 drop_interface.get_msg(drop_status_msg);
 
                 while(drop_status_msg > 0){
-                    nh.spinOnce();
+                    ros::spinOnce();
                     drop_interface.get_msg(drop_status_msg)
                 }
             }
@@ -823,11 +818,11 @@ int main(int argc, char **argv) {
                 drop_command_msg.left = 1;
                 drop_interface.set_msg(drop_command_msg);
                 int drop_status_msg;
-                nh.spinOnce();
+                ros::spinOnce();
                 drop_interface.get_msg(drop_status_msg);
 
                 while(drop_status_msg > 0){
-                    nh.spinOnce();
+                    ros::spinOnce();
                     drop_interface.get_msg(drop_status_msg)
                 }
             }
@@ -841,9 +836,9 @@ int main(int argc, char **argv) {
             //head to next puck
             std::vector <double> puck_score;
             pose = get_robot_pos(listener, yaw);
-            nh.spinOnce();
+            ros::spinOnce();
             for(int i = 0; i < poses.poses.size(); i++){
-                double puck_distance = pow(poses.poses[i].position.x - pose.pose.position.x, 2) + pow(poses.poses[i].position.y - pose.pose.position.y, 2);
+                double puck_distance = pow(poses.poses[i].position.x - pose.position.x, 2) + pow(poses.poses[i].position.y - pose.position.y, 2);
 
                 int puck_value;
 
@@ -868,11 +863,11 @@ int main(int argc, char **argv) {
           Start.header.seq = 0;
           Start.header.stamp = ros::Time::now();
           Start.header.frame_id = "/map";
-          Start.pose = pose.pose;
+          Start.pose = pose;
 
-          double approach_angle = atan2((puck.pose.position.y - pose.pose.position.y), (puck.pose.position.x - pose.pose.position.x));
-          double x = puck.pose.position.x - (APPROACH_RADIUS * cos(approach_angle));
-          double y = puck.pose.position.y - (APPROACH_RADIUS * sin(approach_angle));
+          double approach_angle = atan2((puck.position.y - pose.position.y), (puck.position.x - pose.position.x));
+          double x = puck.position.x - (APPROACH_RADIUS * cos(approach_angle));
+          double y = puck.position.y - (APPROACH_RADIUS * sin(approach_angle));
 
           double desired_yaw = constrainAngle(approach_angle - PI/2);
 
@@ -894,10 +889,10 @@ int main(int argc, char **argv) {
 
           ROS_INFO("Make plan: %d", (check_path.call(srv) ? 1 : 0));
 
-          while(response.plan.poses.size() == 0){
+          while(srv.response.plan.poses.size() == 0){
               approach_angle = fmod(rand(), 2*PI);
-              Goal.pose.position.x = puck.pose.position.x - (APPROACH_RADIUS * cos(approach_angle));
-              Goal.pose.position.y = puck.pose.position.y - (APPROACH_RADIUS * sin(approach_angle));
+              Goal.pose.position.x = puck.position.x - (APPROACH_RADIUS * cos(approach_angle));
+              Goal.pose.position.y = puck.position.y - (APPROACH_RADIUS * sin(approach_angle));
 
               desired_yaw = constrainAngle(approach_angle - PI/2);
 
@@ -908,7 +903,7 @@ int main(int argc, char **argv) {
               Goal.pose.orientation.w = sy;
 
               srv.request.goal = Goal;
-              check_path.call(srv);
+              ROS_INFO("Make plan: %d", (check_path.call(srv) ? 1 : 0));
           }
 
           ROS_INFO("Plan size: %d", srv.response.plan.poses.size());
@@ -932,9 +927,9 @@ int main(int argc, char **argv) {
                     Start.header.seq = 0;
                     Start.header.stamp = ros::Time::now();
                     Start.header.frame_id = "/map";
-                    Start.pose = pose.pose;
+                    Start.pose = pose;
 
-                    double approach_angle = atan2((green.y - pose.pose.position.y), (green.x - pose.pose.position.x));
+                    double approach_angle = atan2((green.y - pose.position.y), (green.x - pose.position.x));
                     double x = green.x - (APPROACH_RADIUS * cos(approach_angle));
                     double y = green.y - (APPROACH_RADIUS * sin(approach_angle));
 
@@ -958,7 +953,7 @@ int main(int argc, char **argv) {
 
                     ROS_INFO("Make plan: %d", (check_path.call(srv) ? 1 : 0));
 
-                    while(response.plan.poses.size() == 0){
+                    while(srv.response.plan.poses.size() == 0){
                         approach_angle = fmod(rand(), 2*PI);
                         Goal.pose.position.x = green.x - (APPROACH_RADIUS * cos(approach_angle));
                         Goal.pose.position.y = green.y - (APPROACH_RADIUS * sin(approach_angle));
@@ -972,7 +967,7 @@ int main(int argc, char **argv) {
                         Goal.pose.orientation.w = sy;
 
                         srv.request.goal = Goal;
-                        check_path.call(srv);
+                        ROS_INFO("Make plan: %d", (check_path.call(srv) ? 1 : 0));
                     }
 
                     ROS_INFO("Plan size: %d", srv.response.plan.poses.size());
@@ -987,7 +982,7 @@ int main(int argc, char **argv) {
 
                         while(collision_check(yaw, pose, goal, ac)){
                             avoided_collision = true;
-                            nh.spinOnce();
+                            ros::spinOnce();
                             pose = get_robot_pos(listener, yaw);
                         }
 
@@ -1005,11 +1000,11 @@ int main(int argc, char **argv) {
                         drop_command_msg.left = 1;
                         drop_interface.set_msg(drop_command_msg);
                         int drop_status_msg;
-                        nh.spinOnce();
+                        ros::spinOnce();
                         drop_interface.get_msg(drop_status_msg);
 
                         while(drop_status_msg > 0){
-                            nh.spinOnce();
+                            ros::spinOnce();
                             drop_interface.get_msg(drop_status_msg)
                         }
                     }
@@ -1026,9 +1021,9 @@ int main(int argc, char **argv) {
                     Start.header.seq = 0;
                     Start.header.stamp = ros::Time::now();
                     Start.header.frame_id = "/map";
-                    Start.pose = pose.pose;
+                    Start.pose = pose;
 
-                    double approach_angle = atan2((red.y - pose.pose.position.y), (red.x - pose.pose.position.x));
+                    double approach_angle = atan2((red.y - pose.position.y), (red.x - pose.position.x));
                     double x = red.x - (APPROACH_RADIUS * cos(approach_angle));
                     double y = red.y - (APPROACH_RADIUS * sin(approach_angle));
 
@@ -1052,7 +1047,7 @@ int main(int argc, char **argv) {
 
                     ROS_INFO("Make plan: %d", (check_path.call(srv) ? 1 : 0));
 
-                    while(response.plan.poses.size() == 0){
+                    while(srv.response.plan.poses.size() == 0){
                         approach_angle = fmod(rand(), 2*PI);
                         Goal.pose.position.x = red.x - (APPROACH_RADIUS * cos(approach_angle));
                         Goal.pose.position.y = red.y - (APPROACH_RADIUS * sin(approach_angle));
@@ -1066,7 +1061,7 @@ int main(int argc, char **argv) {
                         Goal.pose.orientation.w = sy;
 
                         srv.request.goal = Goal;
-                        check_path.call(srv);
+                        ROS_INFO("Make plan: %d", (check_path.call(srv) ? 1 : 0));
                     }
 
                     ROS_INFO("Plan size: %d", srv.response.plan.poses.size());
@@ -1081,7 +1076,7 @@ int main(int argc, char **argv) {
 
                         while(collision_check(yaw, pose, goal, ac)){
                             avoided_collision = true;
-                            nh.spinOnce();
+                            ros::spinOnce();
                             pose = get_robot_pos(listener, yaw);
                         }
 
@@ -1099,11 +1094,11 @@ int main(int argc, char **argv) {
                         drop_command_msg.right = 1;
                         drop_interface.set_msg(drop_command_msg);
                         int drop_status_msg;
-                        nh.spinOnce();
+                        ros::spinOnce();
                         drop_interface.get_msg(drop_status_msg);
 
                         while(drop_status_msg > 0){
-                            nh.spinOnce();
+                            ros::spinOnce();
                             drop_interface.get_msg(drop_status_msg)
                         }
                     }
@@ -1117,9 +1112,9 @@ int main(int argc, char **argv) {
                 //Then, find another puck
                 std::vector <double> puck_score;
                 pose = get_robot_pos(listener, yaw);
-                nh.spinOnce();
+                ros::spinOnce();
                 for(int i = 0; i < poses.poses.size(); i++){
-                    double puck_distance = pow(poses.poses[i].position.x - pose.pose.position.x, 2) + pow(poses.poses[i].position.y - pose.pose.position.y, 2);
+                    double puck_distance = pow(poses.poses[i].position.x - pose.position.x, 2) + pow(poses.poses[i].position.y - pose.position.y, 2);
 
                     int puck_value;
 
@@ -1144,11 +1139,11 @@ int main(int argc, char **argv) {
               Start.header.seq = 0;
               Start.header.stamp = ros::Time::now();
               Start.header.frame_id = "/map";
-              Start.pose = pose.pose;
+              Start.pose = pose;
 
-              double approach_angle = atan2((puck.pose.position.y - pose.pose.position.y), (puck.pose.position.x - pose.pose.position.x));
-              double x = puck.pose.position.x - (APPROACH_RADIUS * cos(approach_angle));
-              double y = puck.pose.position.y - (APPROACH_RADIUS * sin(approach_angle));
+              double approach_angle = atan2((puck.position.y - pose.position.y), (puck.position.x - pose.position.x));
+              double x = puck.position.x - (APPROACH_RADIUS * cos(approach_angle));
+              double y = puck.position.y - (APPROACH_RADIUS * sin(approach_angle));
 
               double desired_yaw = constrainAngle(approach_angle - PI/2);
 
@@ -1170,10 +1165,10 @@ int main(int argc, char **argv) {
 
               ROS_INFO("Make plan: %d", (check_path.call(srv) ? 1 : 0));
 
-              while(response.plan.poses.size() == 0){
+              while(srv.response.plan.poses.size() == 0){
                   approach_angle = fmod(rand(), 2*PI);
-                  Goal.pose.position.x = puck.pose.position.x - (APPROACH_RADIUS * cos(approach_angle));
-                  Goal.pose.position.y = puck.pose.position.y - (APPROACH_RADIUS * sin(approach_angle));
+                  Goal.pose.position.x = puck.position.x - (APPROACH_RADIUS * cos(approach_angle));
+                  Goal.pose.position.y = puck.position.y - (APPROACH_RADIUS * sin(approach_angle));
 
                   desired_yaw = constrainAngle(approach_angle - PI/2);
 
@@ -1184,7 +1179,7 @@ int main(int argc, char **argv) {
                   Goal.pose.orientation.w = sy;
 
                   srv.request.goal = Goal;
-                  check_path.call(srv);
+                  ROS_INFO("Make plan: %d", (check_path.call(srv) ? 1 : 0));
               }
 
               ROS_INFO("Plan size: %d", srv.response.plan.poses.size());
@@ -1196,9 +1191,9 @@ int main(int argc, char **argv) {
                 //find another puck
                 std::vector <double> puck_score;
                 pose = get_robot_pos(listener, yaw);
-                nh.spinOnce();
+                ros::spinOnce();
                 for(int i = 0; i < poses.poses.size(); i++){
-                    double puck_distance = pow(poses.poses[i].position.x - pose.pose.position.x, 2) + pow(poses.poses[i].position.y - pose.pose.position.y, 2);
+                    double puck_distance = pow(poses.poses[i].position.x - pose.position.x, 2) + pow(poses.poses[i].position.y - pose.position.y, 2);
 
                     int puck_value;
 
@@ -1223,11 +1218,11 @@ int main(int argc, char **argv) {
               Start.header.seq = 0;
               Start.header.stamp = ros::Time::now();
               Start.header.frame_id = "/map";
-              Start.pose = pose.pose;
+              Start.pose = pose;
 
-              double approach_angle = atan2((puck.pose.position.y - pose.pose.position.y), (puck.pose.position.x - pose.pose.position.x));
-              double x = puck.pose.position.x - (APPROACH_RADIUS * cos(approach_angle));
-              double y = puck.pose.position.y - (APPROACH_RADIUS * sin(approach_angle));
+              double approach_angle = atan2((puck.position.y - pose.position.y), (puck.position.x - pose.position.x));
+              double x = puck.position.x - (APPROACH_RADIUS * cos(approach_angle));
+              double y = puck.position.y - (APPROACH_RADIUS * sin(approach_angle));
 
               double desired_yaw = constrainAngle(approach_angle - PI/2);
 
@@ -1249,10 +1244,10 @@ int main(int argc, char **argv) {
 
               ROS_INFO("Make plan: %d", (check_path.call(srv) ? 1 : 0));
 
-              while(response.plan.poses.size() == 0){
+              while(srv.response.plan.poses.size() == 0){
                   approach_angle = fmod(rand(), 2*PI);
-                  Goal.pose.position.x = puck.pose.position.x - (APPROACH_RADIUS * cos(approach_angle));
-                  Goal.pose.position.y = puck.pose.position.y - (APPROACH_RADIUS * sin(approach_angle));
+                  Goal.pose.position.x = puck.position.x - (APPROACH_RADIUS * cos(approach_angle));
+                  Goal.pose.position.y = puck.position.y - (APPROACH_RADIUS * sin(approach_angle));
 
                   desired_yaw = constrainAngle(approach_angle - PI/2);
 
@@ -1263,7 +1258,7 @@ int main(int argc, char **argv) {
                   Goal.pose.orientation.w = sy;
 
                   srv.request.goal = Goal;
-                  check_path.call(srv);
+                  ROS_INFO("Make plan: %d", (check_path.call(srv) ? 1 : 0));
               }
 
               ROS_INFO("Plan size: %d", srv.response.plan.poses.size());
@@ -1274,9 +1269,9 @@ int main(int argc, char **argv) {
             else{
                 std::vector <double> puck_score;
                 pose = get_robot_pos(listener, yaw);
-                nh.spinOnce();
+                ros::spinOnce();
                 for(int i = 0; i < poses.poses.size(); i++){
-                double puck_distance = pow(poses.poses[i].position.x - pose.pose.position.x, 2) + pow(poses.poses[i].position.y - pose.pose.position.y, 2);
+                double puck_distance = pow(poses.poses[i].position.x - pose.position.x, 2) + pow(poses.poses[i].position.y - pose.position.y, 2);
 
                 double proximity_to_prev_goal = pow(poses.poses[i].position.x - goal.target_pose.pose.position.x, 2) + pow(poses.poses[i].position.y - goal.target_pose.pose.position.y, 2);
 
@@ -1305,11 +1300,11 @@ int main(int argc, char **argv) {
               Start.header.seq = 0;
               Start.header.stamp = ros::Time::now();
               Start.header.frame_id = "/map";
-              Start.pose = pose.pose;
+              Start.pose = pose;
 
               if(is_vertical){
-                double x = puck.pose.position.x + APPROACH_RADIUS;
-                double y = puck.pose.position.y;
+                double x = puck.position.x + APPROACH_RADIUS;
+                double y = puck.position.y;
 
                 double desired_yaw = PI/2;
 
@@ -1318,9 +1313,9 @@ int main(int argc, char **argv) {
               }
 
               else {
-                double approach_angle = atan2((puck.pose.position.y - pose.pose.position.y), (puck.pose.position.x - pose.pose.position.x));
-                double x = puck.pose.position.x - (APPROACH_RADIUS * cos(approach_angle));
-                double y = puck.pose.position.y - (APPROACH_RADIUS * sin(approach_angle));
+                double approach_angle = atan2((puck.position.y - pose.position.y), (puck.position.x - pose.position.x));
+                double x = puck.position.x - (APPROACH_RADIUS * cos(approach_angle));
+                double y = puck.position.y - (APPROACH_RADIUS * sin(approach_angle));
 
                 double desired_yaw = constrainAngle(approach_angle - PI/2);
 
@@ -1344,10 +1339,10 @@ int main(int argc, char **argv) {
 
               ROS_INFO("Make plan: %d", (check_path.call(srv) ? 1 : 0));
 
-              while(response.plan.poses.size() == 0){
+              while(srv.response.plan.poses.size() == 0){
                   approach_angle = fmod(rand(), 2*PI);
-                  Goal.pose.position.x = puck.pose.position.x - (APPROACH_RADIUS * cos(approach_angle));
-                  Goal.pose.position.y = puck.pose.position.y - (APPROACH_RADIUS * sin(approach_angle));
+                  Goal.pose.position.x = puck.position.x - (APPROACH_RADIUS * cos(approach_angle));
+                  Goal.pose.position.y = puck.position.y - (APPROACH_RADIUS * sin(approach_angle));
 
                   desired_yaw = constrainAngle(approach_angle - PI/2);
 
@@ -1358,7 +1353,7 @@ int main(int argc, char **argv) {
                   Goal.pose.orientation.w = sy;
 
                   srv.request.goal = Goal;
-                  check_path.call(srv);
+                  ROS_INFO("Make plan: %d", (check_path.call(srv) ? 1 : 0));
               }
 
               ROS_INFO("Plan size: %d", srv.response.plan.poses.size());
@@ -1367,7 +1362,7 @@ int main(int argc, char **argv) {
             }
         }
 
-        nh.spinOnce();
+        ros::spinOnce();
 
         sleeper.sleep();
     }
@@ -1390,18 +1385,18 @@ double anglescores(double yaw, double x, double y, int direction){
   return constrainAngle(angler2g - 0.78539816*direction);
 }
 
-void wallignore(double yaw, std::vector<int>& wall_vector, geometry_msg::Pose pose){
+void wallignore(double yaw, std::vector<int>& wall_vector, geometry_msgs::Pose pose){
     // Might need to reconsider if pucks are taken to be occupied space
         //relative to origin (edge of map), not (0,0) of map
     double resolution = map_metadata.resolution;
     int width = map_metadata.width;
     int height = map_metadata.height;
-    geometry_msg::Pose origin = map_metadeta.origin;
+    geometry_msgs::Pose origin = map_metadeta.origin;
 
-    double base_link_x = pose.pose.position.x - origin.position.x;
-    double base_link_y = pose.pose.position.y - origin.position.y;
-    int base_link_pixel_x = round((pose.pose.position.x - origin.position.x)/resolution);
-    int base_link_pixel_y = round((pose.pose.position.y - origin.position.y)/resolution);
+    double base_link_x = pose.position.x - origin.position.x;
+    double base_link_y = pose.position.y - origin.position.y;
+    int base_link_pixel_x = round((pose.position.x - origin.position.x)/resolution);
+    int base_link_pixel_y = round((pose.position.y - origin.position.y)/resolution);
 
     std::vector<bool> bool_wall_vector = {0, 0, 0, 0, 0, 0, 0, 0};
 
@@ -1498,22 +1493,6 @@ void wallignore_instance(double yaw, double x, double y, std::vector<int>& wall_
   }
 }
 
-Quaterniond toQuaternion(double yaw, double pitch, double roll) // yaw (Z), pitch (Y), roll (X)
-{
-    // Abbreviations for the various angular functions
-    double cy = cos(yaw * 0.5);
-    double sy = sin(yaw * 0.5);
-    double cp = cos(pitch * 0.5);
-    double cr = cos(roll * 0.5);
-
-    Quaterniond q;
-    q.w = cy * cp * cr +
-    q.x =  -
-    q.y =  +
-    q.z = sy * cp * cr - ;
-    return q;
-}
-
 geometry_msgs::Pose get_robot_pos(tf::TransformListener& listener, double& yaw){
     tf::StampedTransform transform;
     try
@@ -1523,14 +1502,14 @@ geometry_msgs::Pose get_robot_pos(tf::TransformListener& listener, double& yaw){
       // construct a pose message
       geometry_msgs::Pose pose;
 
-      pose.pose.orientation.x = transform.getRotation().getX();
-      pose.pose.orientation.y = transform.getRotation().getY();
-      pose.pose.orientation.z = transform.getRotation().getZ();
-      pose.pose.orientation.w = transform.getRotation().getW();
+      pose.orientation.x = transform.getRotation().getX();
+      pose.orientation.y = transform.getRotation().getY();
+      pose.orientation.z = transform.getRotation().getZ();
+      pose.orientation.w = transform.getRotation().getW();
 
-      pose.pose.position.x = transform.getOrigin().getX();
-      pose.pose.position.y = transform.getOrigin().getY();
-      pose.pose.position.z = transform.getOrigin().getZ();
+      pose.position.x = transform.getOrigin().getX();
+      pose.position.y = transform.getOrigin().getY();
+      pose.position.z = transform.getOrigin().getZ();
 
       yaw = tf::getYaw(transform.getRotation());
 
@@ -1540,14 +1519,13 @@ geometry_msgs::Pose get_robot_pos(tf::TransformListener& listener, double& yaw){
     {
         ROS_ERROR("%s",ex.what());
         //ros::Duration(1.0).sleep();
-        continue;
     }
 }
 
 double space_distance(double  yaw, geometry_msgs::Pose pose, int direction){
 
-    double base_link_x = pose.pose.position.x - map.origin.position.x;
-    double base_link_y = pose.pose.position.y - map.origin.position.y;
+    double base_link_x = pose.position.x - map_metadata.origin.position.x;
+    double base_link_y = pose.position.y - map_metadata.origin.position.y;
     double motion_angle = yaw - (direction * PI/4) + PI/2;
     int base_link_pixel_x = round((base_link_x)/resolution);
     int base_link_pixel_y = round((base_link_y)/resolution);
@@ -1562,19 +1540,19 @@ double space_distance(double  yaw, geometry_msgs::Pose pose, int direction){
 
           if(pixel_x <= 0 || pixel_y <= 0 || pixel_x >= width || pixel_y >= height){
               found_occupied = true;
-              double distance_to_occupied = pow((base_link_x - (pose.pose.position.x - map.origin.position.x)), 2) + pow((base_link_y - (pose.pose.position.y - map.origin.position.y)), 2)
+              double distance_to_occupied = pow((base_link_x - (pose.position.x - map_metadata.origin.position.x)), 2) + pow((base_link_y - (pose.position.y - map_metadata.origin.position.y)), 2)
           }
 
           else{
               if(map.data[pixel_x + pixel_y * width] == 100){
                   found_occupied = true;
-                  double distance_to_occupied = pow((base_link_x - (pose.pose.position.x - map.origin.position.x)), 2) + pow((base_link_y - (pose.pose.position.y - map.origin.position.y)), 2)
+                  double distance_to_occupied = pow((base_link_x - (pose.position.x - map_metadata.origin.position.x)), 2) + pow((base_link_y - (pose.position.y - map_metadata.origin.position.y)), 2)
               }
           }
       }
 }
 
-bool collision_check(double yaw, geometry_msg::Pose pose, move_base_msgs::MoveBaseGoal goal, MoveBaseClient ac){
+bool collision_check(double yaw, geometry_msgs::Pose pose, move_base_msgs::MoveBaseGoal goal, MoveBaseClient ac){
 
 bool blocked_by_non_wall = false;
 std::vector<int> blocked_directions;
@@ -1623,9 +1601,9 @@ if(blocked_by_non_wall){
     else{
       if(i == 0){
         if(blocked_directions[1] == 1 && blocked_directions[blocked_directions.size() - 1] == 7){
-            if (pow(goal.target_pose.pose.position.x - pose.pose.position.x, 2) + pow(goal.target_pose.pose.position.y - pose.pose.position.y, 2)) <= CLOSE_ENOUGH){
+            if (pow(goal.target_pose.pose.position.x - pose.position.x, 2) + pow(goal.target_pose.pose.position.y - pose.position.y, 2)) <= CLOSE_ENOUGH){
                 std::vector<int> wall_vector_instance;
-                wallignore_instance(yaw, goal.target_pose.pose.position.x - pose.pose.position.x, goal.target_pose.pose.position.y - pose.pose.position.y, wall_vector_instance);
+                wallignore_instance(yaw, goal.target_pose.pose.position.x - pose.position.x, goal.target_pose.pose.position.y - pose.position.y, wall_vector_instance);
                 for(int k = 0; k < wall_vector_instance.size(); k++){
                     if(wall_vector_instance[k] == i){
                         ROS_INFO("Sending goal");
@@ -1639,7 +1617,7 @@ if(blocked_by_non_wall){
 
         else if(blocked_directions[1] == 1 || blocked_directions[blocked_directions.size() - 1] == 7){
             double distance_to_goal = space_distance(yaw, pose, i);
-            double angle_to_goal = fabs(anglescores(yaw, goal.target_pose.pose.position.x - pose.pose.position.x, goal.target_pose.pose.position.y - pose.pose.position.y, i));
+            double angle_to_goal = fabs(anglescores(yaw, goal.target_pose.pose.position.x - pose.position.x, goal.target_pose.pose.position.y - pose.position.y, i));
             scores.push_back((distance_to_occupied_squared*K)/(angle_to_goal*Q));
             directions.push_back(i);
           //adjust score accordingly
@@ -1647,7 +1625,7 @@ if(blocked_by_non_wall){
 
         else{
             double distance_to_goal = space_distance(yaw, pose, i);
-            double angle_to_goal = fabs(anglescores(yaw, goal.target_pose.pose.position.x - pose.pose.position.x, goal.target_pose.pose.position.y - pose.pose.position.y, i);
+            double angle_to_goal = fabs(anglescores(yaw, goal.target_pose.pose.position.x - pose.position.x, goal.target_pose.pose.position.y - pose.position.y, i);
             scores.push_back((distance_to_occupied_squared*K)/angle_to_goal);
             directions.push_back(i);
           //none of them are, no score penalty
@@ -1657,9 +1635,9 @@ if(blocked_by_non_wall){
 
       if(i == 7){
         if(blocked_directions[1] == 0 && blocked_directions[blocked_directions.size() - 1] == 6){
-            if (pow(goal.target_pose.pose.position.x - pose.pose.position.x, 2) + pow(goal.target_pose.pose.position.y - pose.pose.position.y, 2)) <= CLOSE_ENOUGH){
+            if (pow(goal.target_pose.pose.position.x - pose.position.x, 2) + pow(goal.target_pose.pose.position.y - pose.position.y, 2)) <= CLOSE_ENOUGH){
                 std::vector<int> wall_vector_instance;
-                wallignore_instance(yaw, goal.target_pose.pose.position.x - pose.pose.position.x, goal.target_pose.pose.position.y - pose.pose.position.y, wall_vector_instance);
+                wallignore_instance(yaw, goal.target_pose.pose.position.x - pose.position.x, goal.target_pose.pose.position.y - pose.position.y, wall_vector_instance);
                 for(int k = 0; k < wall_vector_instance.size(); k++){
                     if(wall_vector_instance[k] == i){
                         ROS_INFO("Sending goal");
@@ -1673,7 +1651,7 @@ if(blocked_by_non_wall){
 
         else if(blocked_directions[1] == 0 || blocked_directions[blocked_directions.size() - 1] == 6){
             double distance_to_goal = space_distance(yaw, pose, i);
-            double angle_to_goal = fabs(anglescores(yaw, goal.target_pose.pose.position.x - pose.pose.position.x, goal.target_pose.pose.position.y - pose.pose.position.y, i));
+            double angle_to_goal = fabs(anglescores(yaw, goal.target_pose.pose.position.x - pose.position.x, goal.target_pose.pose.position.y - pose.position.y, i));
             scores.push_back((distance_to_occupied_squared*K)/(angle_to_goal*Q));
             directions.push_back(i);
           //adjust score accordingly
@@ -1681,7 +1659,7 @@ if(blocked_by_non_wall){
 
         else{
             double distance_to_goal = space_distance(yaw, pose, i);
-            double angle_to_goal = fabs(anglescores(yaw, goal.target_pose.pose.position.x - pose.pose.position.x, goal.target_pose.pose.position.y - pose.pose.position.y, i));
+            double angle_to_goal = fabs(anglescores(yaw, goal.target_pose.pose.position.x - pose.position.x, goal.target_pose.pose.position.y - pose.position.y, i));
             scores.push_back((distance_to_occupied_squared*K)/angle_to_goal);
             directions.push_back(i);
           //none of them are, no score penalty
@@ -1691,9 +1669,9 @@ if(blocked_by_non_wall){
 
       else{
         if(blocked_directions[r] == i - 1 && blocked_directions[r + 1] == i + 1){
-            if (pow(goal.target_pose.pose.position.x - pose.pose.position.x, 2) + pow(goal.target_pose.pose.position.y - pose.pose.position.y, 2)) <= CLOSE_ENOUGH){
+            if (pow(goal.target_pose.pose.position.x - pose.position.x, 2) + pow(goal.target_pose.pose.position.y - pose.position.y, 2)) <= CLOSE_ENOUGH){
                 std::vector<int> wall_vector_instance;
-                wallignore_instance(yaw, goal.target_pose.pose.position.x - pose.pose.position.x, goal.target_pose.pose.position.y - pose.pose.position.y, wall_vector_instance);
+                wallignore_instance(yaw, goal.target_pose.pose.position.x - pose.position.x, goal.target_pose.pose.position.y - pose.position.y, wall_vector_instance);
                 for(int k = 0; k < wall_vector_instance.size(); k++){
                     if(wall_vector_instance[k] == i){
                         ROS_INFO("Sending goal");
@@ -1706,7 +1684,7 @@ if(blocked_by_non_wall){
 
         else if(blocked_directions[r] == i - 1 || blocked_directions[r + 1] == i + 1){
             double distance_to_goal = space_distance(yaw, pose, i);
-            double angle_to_goal = fabs(anglescores(yaw, goal.target_pose.pose.position.x - pose.pose.position.x, goal.target_pose.pose.position.y - pose.pose.position.y, i));
+            double angle_to_goal = fabs(anglescores(yaw, goal.target_pose.pose.position.x - pose.position.x, goal.target_pose.pose.position.y - pose.position.y, i));
             scores.push_back((distance_to_occupied_squared*K)/(angle_to_goal*Q));
             directions.push_back(i);
           //adjust score accordingly
@@ -1715,7 +1693,7 @@ if(blocked_by_non_wall){
 
         else{
             double distance_to_occupied_squared = space_distance(yaw, pose, i);
-            double angle_to_goal = fabs(anglescores(yaw, goal.target_pose.pose.position.x - pose.pose.position.x, goal.target_pose.pose.position.y - pose.pose.position.y, i));
+            double angle_to_goal = fabs(anglescores(yaw, goal.target_pose.pose.position.x - pose.position.x, goal.target_pose.pose.position.y - pose.position.y, i));
 
             scores.push_back((distance_to_occupied_squared*K)/angle_to_goal);
             directions.push_back(i);

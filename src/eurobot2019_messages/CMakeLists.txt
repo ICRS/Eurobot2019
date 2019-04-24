@@ -15,6 +15,7 @@ add_message_files(
   grabber_motors.msg
   pickup.msg
   grabber_motors.msg
+  collision_avoidance.msg
 )
 
 ## Generate services in the 'srv' folder
