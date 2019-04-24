@@ -1,4 +1,4 @@
-//Hardcoded VERSION
+////Hardcoded VERSION
 #include <ros/ros.h>
 #include <eurobot2019_messages/grabber_motors.h>
 #include <eurobot2019_messages/pickup.h>
@@ -36,9 +36,6 @@ int pucks_color[32] = {3,3,1,1,2,1,1,2,2,1,3,1,2,2,3,2,1,1,2,3,1,2,1,3,1,2,1,2,1
 int poses_array[2][32] = {{0,1300},{0,1700},{450,450},{750,450},{1050,500},{450,2500},{750,2500},{1050,2500},{1050,925},{1050,1075},{975,1000},{1125,1000},{1800,834},{1800,2166},{2000,125},{2000,225},{2000,325},{2000,2675},{2000,2775},{2000,2875},{1543,500},{1543,600},{1543,700},{1543,800},{1543,900},{1543,1000},{1543,2500},{1543,2400},{1543,2300},{1543,2200},{1543,2100},{1543,2000}};
 bool isVertical[32] ={1,1,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1};
 
-
-typedef actionlib::SimpleActionClient<move_base_msgs::MoveBaseAction> MoveBaseClient;
-
 typedef actionlib::SimpleActionClient<move_base_msgs::MoveBaseAction> MoveBaseClient;
 
 // Function to check if floating point numbers are close enough
@@ -48,9 +45,9 @@ bool approx_equal(float a, float b) {
 
 std_msgs::Int32 drop_command_r;
 
-void sub_d_r_Callback(const std_msgs::Int32::ConstPtr& msg)
+void sub_d_r_chatterCallback(const std_msgs::Int32::ConstPtr& msg)
 {
-    ROS_INFO("sub_d_r_Callback returned queue: [%d]", msg->data);
+    ROS_INFO("sub_d_r_chatterCallback returned queue: [%d]", msg->data);
     drop_command_r  = *msg;
 }
 
@@ -59,34 +56,34 @@ bool got_map_metadata = false;
 nav_msgs::OccupancyGrid map;
 nav_msgs::MapMetaData map_metadata;
 
-void sub_map_Callback(const nav_msgs::OccupancyGrid::ConstPtr& msg)
+void sub_map_chatterCallback(const nav_msgs::OccupancyGrid::ConstPtr& msg)
 {
-    ROS_INFO("sub_map_metadata_Callback returned map_metadata");
+    ROS_INFO("sub_map_metadata_chatterCallback returned map_metadata");
     map = *msg;
     got_map = true;
 }
 
-void sub_map_metadata_Callback(const nav_msgs::MapMetaData::ConstPtr& msg)
+void sub_map_metadata_chatterCallback(const nav_msgs::MapMetaData::ConstPtr& msg)
 {
-    ROS_INFO("sub_map_metadata_Callback returned a map");
+    ROS_INFO("sub_map_metadata_chatterCallback returned a map");
     map_metadata = *msg;
     got_map_metadata = true;
 }
 
 eurobot2019_messages::collision_avoidance collision_avoidance;
 
-void sub_collision_avoidance_Callback(const eurobot2019_messages::collision_avoidance::ConstPtr& msg)
+void sub_collision_avoidance_chatterCallback(const eurobot2019_messages::collision_avoidance::ConstPtr& msg)
 {
-    ROS_INFO("sub_collision_avoidance_Callback returned successfully");
+    ROS_INFO("sub_collision_avoidance_chatterCallback returned successfully");
     collision_avoidance = *msg;
 }
 
 geometry_msgs::Pose get_robot_pos(tf::TransformListener& listener, double& yaw);
-void wallignore(double yaw, std::vector<int>& wall_vector, geometry_msgs::Pose pose);
+void wallignore(double yaw, std::vector<int>& wall_vector, geometry_msgs::Pose pose, double collision_radius);
 void wallignore_instance(double yaw, double x, double y, std::vector<int>& wall_vector);
 double anglescores(double yaw, double x, double y, int direction);
 double constrainAngle(double x);
-bool collision_check(double yaw, geometry_msgs::Pose pose, MoveBaseGoal goal, MoveBaseClient ac);
+bool collision_check(double yaw, geometry_msgs::Pose pose, move_base_msgs::MoveBaseGoal goal, MoveBaseClient ac, double collision_radius);
 double space_distance(double  yaw, geometry_msgs::Pose pose, int direction);
 
 int main(int argc, char **argv) {
@@ -108,12 +105,12 @@ int main(int argc, char **argv) {
     MessageInterface<eurobot2019_messages::drop_command, std_msgs::Int32>
                 drop_interface(10, "drop", 10, "drop_status_l");
 
-    ros::Subscriber sub_d_r = n.subscribe("drop_status_r", 10, sub_d_r_chatterCallback);
-    ros::Subscriber sub_map = n.subscribe("map", 1, sub_map_chatterCallback);
-    ros::Subscriber sub_map_metadata = n.subscribe("map_metadata", 1, sub_map_metadata_Callback);
-    ros::Subscriber sub_collision_avoidance = n.subscribe("collision_avoidance", 1, sub_collision_avoidance_Callback);
+    ros::Subscriber sub_d_r = nh.subscribe("drop_status_r", 10, sub_d_r_chatterCallback);
+    ros::Subscriber sub_map = nh.subscribe("map", 1, sub_map_chatterCallback);
+    ros::Subscriber sub_map_metadata = nh.subscribe("map_metadata", 1, sub_map_metadata_chatterCallback);
+    ros::Subscriber sub_collision_avoidance = nh.subscribe("collision_avoidance", 1, sub_collision_avoidance_chatterCallback);
 
-    ServiceClient check_path = nh_.serviceClient<nav_msgs::getplan>("/move_base/make_plan");
+    ros::ServiceClient check_path = nh.serviceClient<nav_msgs::GetPlan>("/move_base/make_plan");
 
     do{
         ros::spinOnce();
@@ -230,7 +227,9 @@ int main(int argc, char **argv) {
             //check collision avoidance
 
             static auto t4 = std::chrono::high_resolution_clock::now();
-            while(collision_check(yaw, pose, goal, ac)){
+            bool check_collision = collision_check(yaw, pose, goal, ac, collision_radius);
+            while(check_collision){
+                check_collision = collision_check(yaw, pose, goal, ac, collision_radius);
                 avoided_collision = true;
                 ros::spinOnce();
                 pose = get_robot_pos(listener, yaw);
@@ -247,7 +246,8 @@ int main(int argc, char **argv) {
             else if(distance < prev_distance){
                 prev_distance = distance;
                 t1 = std::chrono::high_resolution_clock::now();
-
+                auto t2 = std::chrono::high_resolution_clock::now();
+                std::chrono::duration<double, std::milli> too_long_span = t2 - t3;
                 if (too_long_span.count() > TOO_LONG){
                     has_moved_closer_or_in_time = false;
                 }
@@ -284,13 +284,13 @@ int main(int argc, char **argv) {
             pickup_interface.set_msg(pickup);
             std_msgs::Int32 pickup_status_msg;
             ros::spinOnce();
-            pickup_interface.get_msg(pickup_status_msg);
+            pickup_status_msg = pickup_interface.get_msg();
 
             while(pickup_status_msg.data > 0){
                 ros::spinOnce();
-                pickup_interface.get_msg(pickup_status_msg)
+                pickup_status_msg = pickup_interface.get_msg();
                 if(is_vertical){
-                  if(pickup_status == 4){
+                  if(pickup_status_msg.data == 4){
                       pose = get_robot_pos(listener, yaw);
                       double desired_yaw = PI/2;
                       double x = pose.position.x + 0.05;
@@ -298,18 +298,20 @@ int main(int argc, char **argv) {
                       double cy = cos(desired_yaw * 0.5);
                       double sy = sin(desired_yaw * 0.5);
 
-                      goal.pose.position.x = x;
-                      goal.pose.position.y = y;
-                      goal.pose.orientation.z = cy;
-                      goal.pose.orientation.w = sy;
+                      goal.target_pose.pose.position.x = x;
+                      goal.target_pose.pose.position.y = y;
+                      goal.target_pose.pose.orientation.z = cy;
+                      goal.target_pose.pose.orientation.w = sy;
 
                       ROS_INFO("Sending goal");
                       ac.sendGoal(goal);
 
                       while(ac.getState() != actionlib::SimpleClientGoalState::SUCCEEDED){
                           bool avoided_collision = false;
+                          bool check_collision = collision_check(yaw, pose, goal, ac, collision_radius);
 
-                          while(collision_check(yaw, pose, goal, ac)){
+                          while(check_collision){
+                              check_collision = collision_check(yaw, pose, goal, ac, collision_radius);
                               avoided_collision = true;
                               ros::spinOnce();
                               pose = get_robot_pos(listener, yaw);
@@ -326,9 +328,9 @@ int main(int argc, char **argv) {
                                   double cy = cos(desired_yaw * 0.5);
                                   double sy = sin(desired_yaw * 0.5);
 
-                                  goal.pose.position.x = x;
-                                  goal.pose.position.y = y;
-                                  goal.pose.orientation = pose.orientation;
+                                  goal.target_pose.pose.position.x = x;
+                                  goal.target_pose.pose.position.y = y;
+                                  goal.target_pose.pose.orientation = pose.orientation;
                                   ac.sendGoal(goal);
                               }
                           }
@@ -354,10 +356,10 @@ int main(int argc, char **argv) {
               double cy = cos(desired_yaw * 0.5);
               double sy = sin(desired_yaw * 0.5);
 
-              goal.pose.position.x = x;
-              goal.pose.position.y = y;
-              goal.pose.orientation.z = cy;
-              goal.pose.orientation.w = sy;
+              goal.target_pose.pose.position.x = x;
+              goal.target_pose.pose.position.y = y;
+              goal.target_pose.pose.orientation.z = cy;
+              goal.target_pose.pose.orientation.w = sy;
 
               heading_to_ramp = true;
             }
@@ -426,8 +428,10 @@ int main(int argc, char **argv) {
 
                         while(ac.getState() != actionlib::SimpleClientGoalState::SUCCEEDED){
                             bool avoided_collision = false;
+                            bool check_collision = collision_check(yaw, pose, goal, ac, collision_radius);
 
-                            while(collision_check(yaw, pose, goal, ac)){
+                            while(check_collision){
+                                check_collision = collision_check(yaw, pose, goal, ac, collision_radius);
                                 avoided_collision = true;
                                 ros::spinOnce();
                                 pose = get_robot_pos(listener, yaw);
@@ -448,11 +452,11 @@ int main(int argc, char **argv) {
                             drop_interface.set_msg(drop_command_msg);
                             std_msgs::Int32 drop_status_msg;
                             ros::spinOnce();
-                            drop_interface.get_msg(drop_status_msg);
+                            drop_status_msg = drop_interface.get_msg();
 
                             while(drop_status_msg.data > 0){
                                 ros::spinOnce();
-                                drop_interface.get_msg(drop_status_msg)
+                                drop_status_msg = drop_interface.get_msg();
                             }
                         }
 
@@ -520,8 +524,10 @@ int main(int argc, char **argv) {
 
                         while(ac.getState() != actionlib::SimpleClientGoalState::SUCCEEDED){
                             bool avoided_collision = false;
+                            bool check_collision = collision_check(yaw, pose, goal, ac, collision_radius);
 
-                            while(collision_check(yaw, pose, goal, ac)){
+                            while(check_collision){
+                                check_collision = collision_check(yaw, pose, goal, ac, collision_radius);
                                 avoided_collision = true;
                                 ros::spinOnce();
                                 pose = get_robot_pos(listener, yaw);
@@ -541,11 +547,11 @@ int main(int argc, char **argv) {
                             drop_interface.set_msg(drop_command_msg);
                             std_msgs::Int32 drop_status_msg;
                             ros::spinOnce();
-                            drop_interface.get_msg(drop_status_msg);
+                            drop_status_msg = drop_interface.get_msg();
 
                             while(drop_status_msg.data > 0){
                                 ros::spinOnce();
-                                drop_interface.get_msg(drop_status_msg)
+                                drop_status_msg = drop_interface.get_msg();
                             }
                         }
 
@@ -563,8 +569,8 @@ int main(int argc, char **argv) {
 
                         int puck_value;
 
-                        if ((pucks_color[i] = 2) || (pucks_color[i] = 1)){
-                          puck_value = 6//value for green;
+                        if ((pucks_color[i] == 2) || (pucks_color[i] == 1)){
+                          puck_value = 6;//value for green;
                         }
 
                         else{
@@ -576,7 +582,7 @@ int main(int argc, char **argv) {
                   int chosen_puck = std::max_element(puck_score.begin(),puck_score.end()) - puck_score.begin();
                   geometry_msgs::Pose puck = poses.poses[chosen_puck];
                   current_puck_colour = pucks_color[chosen_puck];
-                  is_vertical = is_vertical[chosen_puck];
+                  is_vertical = isVertical[chosen_puck];
 
                   geometry_msgs::PoseStamped Start;
                   geometry_msgs::PoseStamped Goal;
@@ -642,8 +648,8 @@ int main(int argc, char **argv) {
 
                         int puck_value;
 
-                        if ((pucks_color[i] = 2) || (pucks_color[i] = 1)){
-                          puck_value = 6//value for green;
+                        if ((pucks_color[i] == 2) || (pucks_color[i] == 1)){
+                          puck_value = 6;//value for green;
                         }
 
                         else{
@@ -655,7 +661,7 @@ int main(int argc, char **argv) {
                   int chosen_puck = std::max_element(puck_score.begin(),puck_score.end()) - puck_score.begin();
                   geometry_msgs::Pose puck = poses.poses[chosen_puck];
                   current_puck_colour = pucks_color[chosen_puck];
-                  is_vertical = is_vertical[chosen_puck];
+                  is_vertical = isVertical[chosen_puck];
 
                   geometry_msgs::PoseStamped Start;
                   geometry_msgs::PoseStamped Goal;
@@ -722,11 +728,11 @@ int main(int argc, char **argv) {
 
                     int puck_value;
 
-                    if (pucks_color[i] = 2){
-                      puck_value = 8//value for green;
+                    if (pucks_color[i] == 2){
+                      puck_value = 8;//value for green;
                     }
-                    else if (pucks_color[i] = 3){
-                      puck_value = 12//value for blue;
+                    else if (pucks_color[i] == 3){
+                      puck_value = 12;//value for blue;
                     }
                     else{
                       puck_value = 0;
@@ -737,7 +743,7 @@ int main(int argc, char **argv) {
               int chosen_puck = std::max_element(puck_score.begin(),puck_score.end()) - puck_score.begin();
               geometry_msgs::Pose puck = poses.poses[chosen_puck];
               current_puck_colour = pucks_color[chosen_puck];
-              is_vertical = is_vertical[chosen_puck];
+              is_vertical = isVertical[chosen_puck];
 
               geometry_msgs::PoseStamped Start;
               geometry_msgs::PoseStamped Goal;
@@ -806,11 +812,11 @@ int main(int argc, char **argv) {
                 drop_interface.set_msg(drop_command_msg);
                 std_msgs::Int32 drop_status_msg;
                 ros::spinOnce();
-                drop_interface.get_msg(drop_status_msg);
+                drop_status_msg = drop_interface.get_msg();
 
                 while(drop_status_msg.data > 0){
                     ros::spinOnce();
-                    drop_interface.get_msg(drop_status_msg)
+                    drop_status_msg = drop_interface.get_msg();
                 }
             }
 
@@ -828,11 +834,11 @@ int main(int argc, char **argv) {
                 drop_interface.set_msg(drop_command_msg);
                 std_msgs::Int32 drop_status_msg;
                 ros::spinOnce();
-                drop_interface.get_msg(drop_status_msg);
+                drop_status_msg = drop_interface.get_msg();
 
                 while(drop_status_msg.data > 0){
                     ros::spinOnce();
-                    drop_interface.get_msg(drop_status_msg)
+                    drop_status_msg = drop_interface.get_msg();
                 }
             }
 
@@ -851,8 +857,8 @@ int main(int argc, char **argv) {
 
                 int puck_value;
 
-                if ((pucks_color[i] = 2) || (pucks_color[i] = 1)){
-                  puck_value = 6//value for green;
+                if ((pucks_color[i] == 2) || (pucks_color[i] == 1)){
+                  puck_value = 6;//value for green;
                 }
 
                 else{
@@ -864,7 +870,7 @@ int main(int argc, char **argv) {
           int chosen_puck = std::max_element(puck_score.begin(),puck_score.end()) - puck_score.begin();
           geometry_msgs::Pose puck = poses.poses[chosen_puck];
           current_puck_colour = pucks_color[chosen_puck];
-          is_vertical = is_vertical[chosen_puck];
+          is_vertical = isVertical[chosen_puck];
 
           geometry_msgs::PoseStamped Start;
           geometry_msgs::PoseStamped Goal;
@@ -923,7 +929,7 @@ int main(int argc, char **argv) {
         else{
             ROS_INFO("The base failed to move to next position and orientation");
             //Set goal another puck
-            //Assume receiving geometry_msgs::PoseArray poses, array of ints containing colours int* pucks_color[], array of bools containing whether or not is_vertical called is_vertical[]
+            //Assume receiving geometry_msgs::PoseArray poses, array of ints containing colours int* pucks_color[], array of bools containing whether or not is_vertical called isVertical[]
 
             auto t2 = std::chrono::high_resolution_clock::now();
             std::chrono::duration<double, std::milli> total_time_span = total_time - t1;
@@ -989,7 +995,10 @@ int main(int argc, char **argv) {
                     while(ac.getState() != actionlib::SimpleClientGoalState::SUCCEEDED){
                         bool avoided_collision = false;
 
-                        while(collision_check(yaw, pose, goal, ac)){
+                        bool check_collision = collision_check(yaw, pose, goal, ac, collision_radius);
+
+                        while(check_collision){
+                            check_collision = collision_check(yaw, pose, goal, ac, collision_radius);
                             avoided_collision = true;
                             ros::spinOnce();
                             pose = get_robot_pos(listener, yaw);
@@ -1010,11 +1019,11 @@ int main(int argc, char **argv) {
                         drop_interface.set_msg(drop_command_msg);
                         std_msgs::Int32 drop_status_msg;
                         ros::spinOnce();
-                        drop_interface.get_msg(drop_status_msg);
+                        drop_status_msg = drop_interface.get_msg();
 
                         while(drop_status_msg.data > 0){
                             ros::spinOnce();
-                            drop_interface.get_msg(drop_status_msg)
+                            drop_status_msg = drop_interface.get_msg();
                         }
                     }
 
@@ -1083,7 +1092,10 @@ int main(int argc, char **argv) {
                     while(ac.getState() != actionlib::SimpleClientGoalState::SUCCEEDED){
                         bool avoided_collision = false;
 
-                        while(collision_check(yaw, pose, goal, ac)){
+                        bool check_collision = collision_check(yaw, pose, goal, ac, collision_radius);
+
+                        while(check_collision){
+                            check_collision = collision_check(yaw, pose, goal, ac, collision_radius);
                             avoided_collision = true;
                             ros::spinOnce();
                             pose = get_robot_pos(listener, yaw);
@@ -1104,11 +1116,11 @@ int main(int argc, char **argv) {
                         drop_interface.set_msg(drop_command_msg);
                         std_msgs::Int32 drop_status_msg;
                         ros::spinOnce();
-                        drop_interface.get_msg(drop_status_msg);
+                        drop_status_msg = drop_interface.get_msg();
 
                         while(drop_status_msg.data > 0){
                             ros::spinOnce();
-                            drop_interface.get_msg(drop_status_msg)
+                            drop_status_msg = drop_interface.get_msg();
                         }
                     }
 
@@ -1127,8 +1139,8 @@ int main(int argc, char **argv) {
 
                     int puck_value;
 
-                    if ((pucks_color[i] = 2) || (pucks_color[i] = 1)){
-                      puck_value = 6//value for green;
+                    if ((pucks_color[i] == 2) || (pucks_color[i] == 1)){
+                      puck_value = 6;//value for green;
                     }
 
                     else{
@@ -1140,7 +1152,7 @@ int main(int argc, char **argv) {
               int chosen_puck = std::max_element(puck_score.begin(),puck_score.end()) - puck_score.begin();
               geometry_msgs::Pose puck = poses.poses[chosen_puck];
               current_puck_colour = pucks_color[chosen_puck];
-              is_vertical = is_vertical[chosen_puck];
+              is_vertical = isVertical[chosen_puck];
 
               geometry_msgs::PoseStamped Start;
               geometry_msgs::PoseStamped Goal;
@@ -1206,8 +1218,8 @@ int main(int argc, char **argv) {
 
                     int puck_value;
 
-                    if ((pucks_color[i] = 2) || (pucks_color[i] = 1)){
-                      puck_value = 6//value for green;
+                    if ((pucks_color[i] == 2) || (pucks_color[i] == 1)){
+                      puck_value = 6;//value for green;
                     }
 
                     else{
@@ -1219,7 +1231,7 @@ int main(int argc, char **argv) {
               int chosen_puck = std::max_element(puck_score.begin(),puck_score.end()) - puck_score.begin();
               geometry_msgs::Pose puck = poses.poses[chosen_puck];
               current_puck_colour = pucks_color[chosen_puck];
-              is_vertical = is_vertical[chosen_puck];
+              is_vertical = isVertical[chosen_puck];
 
               geometry_msgs::PoseStamped Start;
               geometry_msgs::PoseStamped Goal;
@@ -1286,11 +1298,11 @@ int main(int argc, char **argv) {
 
                 int puck_value;
 
-                if (pucks_color[i] = 2){
-                  puck_value = 8//value for green;
+                if (pucks_color[i] == 2){
+                  puck_value = 8;//value for green;
                 }
-                else if (pucks_color[i] = 3){
-                  puck_value = 12//value for blue;
+                else if (pucks_color[i] == 3){
+                  puck_value = 12;//value for blue;
                 }
                 else{
                   puck_value = 0;
@@ -1301,7 +1313,7 @@ int main(int argc, char **argv) {
               int chosen_puck = std::max_element(puck_score.begin(),puck_score.end()) - puck_score.begin();
               geometry_msgs::Pose puck = poses.poses[chosen_puck];
               current_puck_colour = pucks_color[chosen_puck];
-              is_vertical = is_vertical[chosen_puck];
+              is_vertical = isVertical[chosen_puck];
 
               geometry_msgs::PoseStamped Start;
               geometry_msgs::PoseStamped Goal;
@@ -1311,25 +1323,34 @@ int main(int argc, char **argv) {
               Start.header.frame_id = "/map";
               Start.pose = pose;
 
+              double x;
+              double y;
+              double approach_angle;
+
+              double desired_yaw;
+
+              double cy;
+              double sy;
+
               if(is_vertical){
-                double x = puck.position.x + APPROACH_RADIUS;
-                double y = puck.position.y;
+                x = puck.position.x + APPROACH_RADIUS;
+                y = puck.position.y;
 
-                double desired_yaw = PI/2;
+                desired_yaw = PI/2;
 
-                double cy = cos(desired_yaw * 0.5);
-                double sy = sin(desired_yaw * 0.5);
+                cy = cos(desired_yaw * 0.5);
+                sy = sin(desired_yaw * 0.5);
               }
 
               else {
-                double approach_angle = atan2((puck.position.y - pose.position.y), (puck.position.x - pose.position.x));
-                double x = puck.position.x - (APPROACH_RADIUS * cos(approach_angle));
-                double y = puck.position.y - (APPROACH_RADIUS * sin(approach_angle));
+                approach_angle = atan2((puck.position.y - pose.position.y), (puck.position.x - pose.position.x));
+                x = puck.position.x - (APPROACH_RADIUS * cos(approach_angle));
+                y = puck.position.y - (APPROACH_RADIUS * sin(approach_angle));
 
-                double desired_yaw = constrainAngle(approach_angle - PI/2);
+                desired_yaw = constrainAngle(approach_angle - PI/2);
 
-                double cy = cos(desired_yaw * 0.5);
-                double sy = sin(desired_yaw * 0.5);
+                cy = cos(desired_yaw * 0.5);
+                sy = sin(desired_yaw * 0.5);
               }
 
 
@@ -1394,13 +1415,18 @@ double anglescores(double yaw, double x, double y, int direction){
   return constrainAngle(angler2g - 0.78539816*direction);
 }
 
-void wallignore(double yaw, std::vector<int>& wall_vector, geometry_msgs::Pose pose){
+void wallignore(double yaw, std::vector<int>& wall_vector, geometry_msgs::Pose pose, double collision_radius){
     // Might need to reconsider if pucks are taken to be occupied space
         //relative to origin (edge of map), not (0,0) of map
     double resolution = map_metadata.resolution;
     int width = map_metadata.width;
     int height = map_metadata.height;
     geometry_msgs::Pose origin = map_metadata.origin;
+
+    int right;
+    int left;
+    int top;
+    int bottom;
 
     double base_link_x = pose.position.x - origin.position.x;
     double base_link_y = pose.position.y - origin.position.y;
@@ -1410,35 +1436,35 @@ void wallignore(double yaw, std::vector<int>& wall_vector, geometry_msgs::Pose p
     std::vector<bool> bool_wall_vector = {0, 0, 0, 0, 0, 0, 0, 0};
 
     if ( (base_link_y + collision_radius) > resolution * height){
-        int top = height
+        top = height;
     }
 
     else{
-        int top = ceil((base_link_y + collision_radius)/resolution)
+        top = ceil((base_link_y + collision_radius)/resolution);
     }
 
     if ( (base_link_x + collision_radius) > resolution * width){
-        int right = width
+        right = width;
     }
 
     else{
-        int right = ceil((base_link_x + collision_radius)/resolution)
+        right = ceil((base_link_x + collision_radius)/resolution);
     }
 
     if ( (base_link_x - collision_radius) < 0){
-        int left = 0
+        left = 0;
     }
 
     else{
-        int left = floor((base_link_x - collision_radius)/resolution)
+        left = floor((base_link_x - collision_radius)/resolution);
     }
 
     if ( (base_link_y - collision_radius) < 0){
-        int bottom = 0
+        bottom = 0;
     }
 
     else{
-        int bottom = ceil((base_link_y - collision_radius)/resolution)
+        bottom = ceil((base_link_y - collision_radius)/resolution);
     }
 
     for(int j = bottom; j <= top; j++){
@@ -1569,14 +1595,14 @@ double space_distance(double  yaw, geometry_msgs::Pose pose, int direction){
       return distance_to_occupied_squared;
 }
 
-bool collision_check(double yaw, geometry_msgs::Pose pose, move_base_msgs::MoveBaseGoal goal, MoveBaseClient ac){
+bool collision_check(double yaw, geometry_msgs::Pose pose, move_base_msgs::MoveBaseGoal goal, MoveBaseClient ac, double collision_radius){
 
 bool blocked_by_non_wall = false;
 std::vector<int> blocked_directions;
 blocked_directions.push_back(15); //junk value to push
 
 std::vector<int> wall_vector;
-wallignore(yaw, wall_vector, pose);
+wallignore(yaw, wall_vector, pose, collision_radius);
 
 for(int i = 0, j = 0; i < 8; i++){
   if (i == wall_vector[j]){
