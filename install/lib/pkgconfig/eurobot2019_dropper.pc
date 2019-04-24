@@ -1,0 +1,8 @@
+prefix=/home/nickick/Eurobot2019/install
+
+Name: eurobot2019_dropper
+Description: Description of eurobot2019_dropper
+Version: 0.0.0
+Cflags: -I/home/nickick/Eurobot2019/install/include
+Libs: -L/home/nickick/Eurobot2019/install/lib 
+Requires: eurobot2019_messages

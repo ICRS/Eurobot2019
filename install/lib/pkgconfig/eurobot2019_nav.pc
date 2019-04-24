@@ -1,0 +1,8 @@
+prefix=/home/nickick/Eurobot2019/install
+
+Name: eurobot2019_nav
+Description: Description of eurobot2019_nav
+Version: 0.0.0
+Cflags: 
+Libs: -L/home/nickick/Eurobot2019/install/lib 
+Requires: 
