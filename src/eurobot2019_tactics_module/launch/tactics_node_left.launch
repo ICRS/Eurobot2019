@@ -7,5 +7,12 @@
         <param name="tolerance" value="/move_base/DWAPlannerROS/xy_goal_tolerance"/>
         <param name="ramp_yaw" value=3.1415926/>
         <param name="flipper" value="0"/>
-    </node>
+ 
+    <node pkg="tf2_ros" type="static_transform_publisher"
+          name="fake_amcl"
+          args="1.55 2.66 0 3.1415926 0 0"</node>
+
+    <include file="$(find eurobot2019_nav)/launch/nav.launch"/>
+    <include file="$(find eurobot2019_i2c_interface)/launch/i2c_interface_node.launch"/>
+    <node pkg="eurobot2019_collision_avoidance" type=".py" name="avoid_me"/>
 </launch>

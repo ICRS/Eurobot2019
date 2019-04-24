@@ -5,14 +5,14 @@
         <!-- Units are mm and radians -->
         <param name="collision_radius" type="double" value="0"/>
         <param name="tolerance" value="/move_base/DWAPlannerROS/xy_goal_tolerance"/>
-        <param name="green_x" value="1.15"/>
-        <param name="green_y" value="0.23"/>
-        <param name="red_x" value="1.45"/>
-        <param name="red_y" value="0.23"/>
-        <param name="ramp_x" value="0.2"/>
-        <param name="ramp_y" value="1.06"/>
-        <param name="ramp_yaw" value=0"/>
-
+        <param name="ramp_yaw" value=3.1415926/>
         <param name="flipper" value="1"/>
-    </node>
+ 
+    <node pkg="tf2_ros" type="static_transform_publisher"
+          name="fake_amcl"
+          args="1.55 0.34 0 0 0 0"</node>
+
+    <include file="$(find eurobot2019_nav)/launch/nav.launch"/>
+    <include file="$(find eurobot2019_i2c_interface)/launch/i2c_interface_node.launch"/>
+    <node pkg="eurobot2019_collision_avoidance" type=".py" name="avoid_me"/>
 </launch>
