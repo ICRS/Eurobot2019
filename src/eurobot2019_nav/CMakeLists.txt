@@ -183,6 +183,7 @@ install(FILES
   maps/eurobot_map.png
   maps/eurobot_map_icrs.png
   base_local_planner_params.yaml
+  dwa_local_planner_params.yaml
   costmap_common_params.yaml
   global_costmap_params.yaml
   local_costmap_params.yaml

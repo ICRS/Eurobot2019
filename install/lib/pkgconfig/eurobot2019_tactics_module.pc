@@ -1,0 +1,8 @@
+prefix=/home/ubuntu/Eurobot2019/install
+
+Name: eurobot2019_tactics_module
+Description: Description of eurobot2019_tactics_module
+Version: 0.0.0
+Cflags: 
+Libs: -L/home/ubuntu/Eurobot2019/install/lib 
+Requires: 

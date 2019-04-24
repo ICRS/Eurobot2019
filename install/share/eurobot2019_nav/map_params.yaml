@@ -1,0 +1,9 @@
+image: maps/eurobot_map.png
+# 1 pixel is 0.001 meters (1 mm)
+resolution: 0.001
+# lower left pixel is at [x, y, yaw]
+origin: [0.0, 0.0, 0.0]
+occupied_thresh: 0.65
+free_thresh: 0.2
+# White is free, Black is occupied
+negate: 0

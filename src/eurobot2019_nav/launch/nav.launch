@@ -20,6 +20,10 @@
           name="laser_link_publisher"
           args="-0.2 0 0 3.1415926 0 0 base_link laser"/>
 
+    <node pkg="tf2_ros" type="static_transform_publisher"
+          name="fake_amcl"
+          args="0.497 1.154 0 -1.5707 0 0 map odom"/>
+
     <!-- Run the map server -->
     <node name="map_server" pkg="map_server" type="map_server" 
           args="$(arg map_file)"/>
@@ -38,8 +42,17 @@
                   command="load"/>
         <rosparam file="$(find eurobot2019_nav)/global_costmap_params.yaml"
                   command="load"/>
+        <!--
         <rosparam file="$(find eurobot2019_nav)/base_local_planner_params.yaml"
                   command="load"/>
+        -->
+        
+        <param name="base_local_planner" value="dwa_local_planner/DWAPlannerROS"/>
+        <rosparam file="$(find eurobot2019_nav)/dwa_local_planner_params.yaml"
+                  command="load"/>
+
+<!--        <remap from="cmd_vel" to="tmp_cmd_vel"/> -->
+        
     </node>
 
     <!-- Run RVIZ -->

@@ -1,0 +1,8 @@
+prefix=/home/ubuntu/Eurobot2019/install
+
+Name: eurobot2019_i2c_interface
+Description: Description of eurobot2019_i2c_interface
+Version: 0.0.0
+Cflags: -I/home/ubuntu/Eurobot2019/install/include
+Libs: -L/home/ubuntu/Eurobot2019/install/lib 
+Requires: std_msgs roscpp
