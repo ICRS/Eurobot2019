@@ -1,18 +1,18 @@
 <launch>
-    <node pkg="eurobot2019_pickup" type="node" name="pickup" 
+    <node pkg="eurobot2019_pickup" type="node" name="pickup"
           output="screen">
         <!-- Parameters change the settings when the node is launched -->
         <!-- Units are mm and radians -->
-        <param name="idle_out_z_pos" type="double" value="0"/>
-        <param name="idle_out_z_twist" type="double" value="0"/>
-        <param name="idle_back_z_pos" type="double" value="3.1415926"/>
-        <param name="idle_back_z_twist" type="double" value="0"/>
-        <param name="vertical_z_pos" type="double" value="0"/>
-        <param name="close_pos" type="double" value="0"/>
-        <param name="open_pos" type="double" value="0"/>
-        <param name="depositing_z_pos" type="double" value="2"/>
-        <param name="depositing_green_z_twist" type="double" value="1.5707963"/>
-        <param name="depositing_blue_z_twist" type="double" value="-1.5707963"/>
-        <param name="depositing_red_z_twist" type="double" value="3.1415926"/>
+        <param name="idle_out_lift" type="int" value="0"/>
+        <param name="idle_out_twist" type="int" value="0"/>
+        <param name="idle_back_lift" type="int" value="3"/>
+        <param name="idle_back_twist" type="int" value="0"/>
+        <param name="vertical_lift" type="int" value="0"/>
+        <param name="close_pos" type="bool" value="0"/>
+        <param name="open_close" type="bool" value="0"/>
+        <param name="depositing_lift" type="int" value="3"/>
+        <param name="depositing_green_twist" type="int" value="0"/>
+        <param name="depositing_blue_twist" type="int" value="2"/>
+        <param name="depositing_red_twist" type="int" value="2"/>
     </node>
 </launch>

@@ -1,11 +1,16 @@
-int8 elevation
+int8 lift
 #0 is bottom
 #1 is low
 #2 is high
 #3 is top
 
-int8 push_left
-int8 push_right
+bool push_left
+#0 is pullback
+#1 is pushout
+
+bool push_right
+#same as push_left
+
 int8 twist
 #0 is left
 #1 is middle
@@ -17,4 +22,4 @@ bool puck_rotation
 
 bool open_close
 #0 is open
-#1 is close 
+#1 is close

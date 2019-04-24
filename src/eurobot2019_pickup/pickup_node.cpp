@@ -47,7 +47,7 @@ int main(int argc, char **argv) {
     // Create a queue to manage the state order
     std::queue<GrabberStates> state_queue;
     state_queue.push(IDLE_BACK);
-    
+
     // Stack is size 1 so set the msg
     pickup_status_msg.data = 1;
     command.set_msg(pickup_status_msg);
@@ -71,7 +71,7 @@ int main(int argc, char **argv) {
             // Idle command means don't pick up a puck at the moment
             if(command_msg.colour == 0) {
                 state_queue.push(OPENING);
-                state_queue.push(IDLE_OUT);                
+                state_queue.push(IDLE_OUT);
             }
             else if(command_msg.colour == 5) {
                 state_queue.push(OPENING);
@@ -90,7 +90,7 @@ int main(int argc, char **argv) {
                 }
                 if(command_msg.pos_reached) {
                     /* We've already added the correct z pos, we now:
-                     * 
+                     *
                      * 1. Close grabber
                      * 2. Rotate if necessary
                      * 3. Move to colour location
@@ -125,31 +125,27 @@ int main(int argc, char **argv) {
 
         // Update if we've arrived at the required position
         auto grabber_pos = hardware.get_msg();
-        // If the current twist is non zero
-        // And current z is not at the target, set twist to 0
-        if(grabber_pos.z_twist_rad > 1e-2 && 
-           !approx_equal(target_msg.z_pos_mm, 
-                         grabber_pos.z_pos_mm)) {
-            motor_msg.z_twist_rad = 0;
+        // If the current twist is non middle
+        // And current lift is not at the target, set twist to middle
+        if((grabber_pos.twist != 1) &&
+           target_msg.lift != grabber_pos.lift) {
+            motor_msg.twist = 1;
         }
-        // If target z is not equal and twist is 0, move z
-        else if(!approx_equal(target_msg.z_pos_mm,
-                              grabber_pos.z_pos_mm)) {
-            motor_msg.z_pos_mm = target_msg.z_pos_mm;
+        // If target lift is not equal to current one and twist is 1, move lift
+        else if(target_msg.lift != grabber_pos.lift) {
+            motor_msg.lift = target_msg.lift;
         }
-        // If z is correct but twist is not, move twist
-        else if(!approx_equal(target_msg.z_twist_rad,
-                              grabber_pos.z_twist_rad)) {
-            motor_msg.z_twist_rad = target_msg.z_twist_rad;
+        // If lift is correct but twist is not, move twist
+        else if(target_msg.twist != grabber_pos.twist) {
+            motor_msg.twist = target_msg.twist;
         }
-        // If z and twist are in the correct position, adjust open/close
-        else if(!approx_equal(target_msg.open_pos_mm,
-                              grabber_pos.open_pos_mm)) {
-            motor_msg.open_pos_mm = target_msg.open_pos_mm;
+        // If lift and twist are in the correct position, adjust open/close
+        else if(target_msg.open_close !=  grabber_pos.open_close) {
+            motor_msg.open_close  = target_msg.open_close;
         }
-        // Finally if the servo twist is wrong, update that
-        else if(target_msg.servo_state != grabber_pos.servo_state) {
-            motor_msg.servo_state = target_msg.servo_state;
+        // Finally if the puck_rotation is wrong, update that
+        else if(target_msg.puck_rotation != grabber_pos.puck_rotation) {
+            motor_msg.puck_rotation = target_msg.puck_rotation;
         }
         // Then everything is in the correct place, so update the state
         else {
