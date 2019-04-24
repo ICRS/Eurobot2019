@@ -3,7 +3,7 @@
   <!-- camera driver -->
   <node pkg="usb_cam" type ="usb_cam_node" name="camera" output="log" respawn="true" launch-prefix="xterm -e">
   <!-- camera should be plugged in first to be video0 -->
-  <param name="video_device" value="/dev/video0"/>
+  <param name="video_device" value="/dev/video1"/>
   <param name="framerate" value="30"/>
   <!-- camera calibration file location -->
   <param name="camera_info_url"
@@ -11,28 +11,33 @@
   <param name="camera_name" value="camera"/>
   </node>
   <node pkg="eurobot2019_puck_localisation" type="node" name="puck_localisation" respawn="true" output="log" launch-prefix="xterm -e">
-  <param name="redLowH" value="161"/>
+  <param name="redLowH" value="114"/>
   <param name="redHighH" value="179"/>
-  <param name="redLowS" value="88"/>
-  <param name="redHighS" value="169"/>
-  <param name="redLowV" value="88"/>
-  <param name="redHighV" value="140"/>
-  <param name="bluelowH" value="81"/>
-  <param name="blueHighH" value="108"/>
-  <param name="blueLowS" value="143"/>
-  <param name="blueHighS" value="248"/>
-  <param name="blueLowV" value="92"/>
-  <param name="blueHighV" value="183"/>
-  <param name="greenLowH" value="26"/>
-  <param name="greenHighH" value="81"/>
-  <param name="greenLowS" value="96"/>
-  <param name="greenHighS" value="195"/>
-  <param name="greenLowV" value="81"/>
-  <param name="greenHighV" value="136"/>
-  <param name="fu" value="558.285043"/>
-  <param name="fv" value="571.252645"/>
-  <param name="u0" value="336.586825"/>
-  <param name="v0" value="349.077050"/>
+  <param name="redLowS" value="22"/>
+  <param name="redHighS" value="123"/>
+  <param name="redLowV" value="255"/>
+  <param name="redHighV" value="255"/>
+  <param name="bluelowH" value="93"/>
+  <param name="blueHighH" value="163"/>
+  <param name="blueLowS" value="65"/>
+  <param name="blueHighS" value="133"/>
+  <param name="blueLowV" value="173"/>
+  <param name="blueHighV" value="255"/>
+  <param name="greenLowH" value="35"/>
+  <param name="greenHighH" value="57"/>
+  <param name="greenLowS" value="15"/>
+  <param name="greenHighS" value="102"/>
+  <param name="greenLowV" value="214"/>
+  <param name="greenHighV" value="255"/>
+  <param name="fu" value="779.064154"/>
+  <param name="fv" value="784.193441"/>
+  <param name="u0" value="291.606301"/>
+  <param name="v0" value="325.207006"/>
+  <param name="thetaX" value="-2.35619449"/>
+  <param name="thetaZ" value="0.7853981634"/> 
+  <param name="worldX_c" value="1.77"/>
+  <param name="worldY_c" value="-0.3"/>
+  <param name="worldz_c" value="2.32"/>
   </node>
   
 </launch>

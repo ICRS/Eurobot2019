@@ -21,10 +21,14 @@ class puck_localisation
     image_transport::ImageTransport it_;
     image_transport::Subscriber sub_;
     image_transport::Publisher pub_;
-    double redParams[6];
-    double blueParams[6];
-    double greenParams[6];
-    double x_w, y_w;
+    int redParams[6];
+    int blueParams[6];
+    int greenParams[6];
+    double thetaX, thetaZ;
+    double camera_translation[3];
+    Matx31f puck_w;
+    Matx31f puck_c;
+    Mat R;
 
 public:
     puck_localisation():it_(nh_){
@@ -51,9 +55,23 @@ public:
         nh_.getParam("puck_localisation/greenHighS",greenParams[3]);
         nh_.getParam("puck_localisation/greenLowV",greenParams[4]);
         nh_.getParam("puck_localisation/greenHighV",greenParams[5]);
-    
+        nh_.getParam("puck_localisation/thetaX",thetaX);
+        nh_.getParam("puck_localisation/thetaZ",thetaZ);
+        nh_.getParam("puck_localisation/worldX_c",camera_translation[0]);
+        nh_.getParam("puck_localisation/worldY_c",camera_translation[1]);
+        nh_.getParam("puck_localisation/worldZ_c",camera_translation[2]);
         cv::namedWindow(OPENCV_WINDOW);
         camera_initialisation();
+        // Rotation matrix
+        Mat R_x = (Mat_<double>(3,3) <<
+               1,       0,              0,
+               0,       cos(thetaX),   -sin(thetaX),
+               0,       sin(thetaX),   cos(thetaX));
+        Mat R_z = (Mat_<double>(3,3) <<
+               cos(thetaZ),    -sin(thetaZ),      0,
+               sin(thetaZ),    cos(thetaZ),       0,
+               0,               0,                1);
+        R = R_z * R_x;
     }
 
     ~puck_localisation(){
@@ -84,6 +102,7 @@ public:
         Mat imgHSV, redThreshold, blueThreshold, greenThreshold;
         // detect pucks
         if (cv_ptr->image.rows > 60 && cv_ptr->image.cols > 60){
+            /*
             cv::cvtColor(cv_ptr->image, imgHSV, CV_BGR2HSV);
 
             inRange(imgHSV, Scalar(redParams[0], redParams[2], redParams[4]), 
@@ -116,7 +135,9 @@ public:
             vector<Vec3f> redPucks;
             GaussianBlur(redThreshold,redThreshold,Size(9,9),2,2);
             // hough transform to find the circles
-            cv::HoughCircles(redThreshold, redPucks, CV_HOUGH_GRADIENT,1,100,50,30,0,0);
+            cv::HoughCircles(redThreshold, redPucks, CV_HOUGH_GRADIENT,1,100,100,20,0,50);
+            if(redPucks.size())
+                ROS_INFO("%d red pucks found!",redPucks.size());
             for( size_t i = 0; i < redPucks.size(); i++ ){   
                 Point center(cvRound(redPucks[i][0]), cvRound(redPucks[i][1]));
                 int radius = cvRound(redPucks[i][2]);
@@ -124,15 +145,14 @@ public:
                 cv::circle(cv_ptr->image, center, 3, cv::Scalar(0,255,0), -1, 8, 0 );
                 // circle outline
                 cv::circle(cv_ptr->image, center, radius, cv::Scalar(0,0,255), 3, 8, 0 );
-                cout<<"found " << redPucks.size() <<" red puck!" << endl;
             }
 
             vector<Vec3f> bluePucks;
             GaussianBlur(blueThreshold,blueThreshold,Size(9,9),2,2);
             // hough transform to find the circles
-            cv::HoughCircles(blueThreshold, bluePucks, CV_HOUGH_GRADIENT,1,100,100,30,0,0);
+            cv::HoughCircles(blueThreshold, bluePucks, CV_HOUGH_GRADIENT,1,100,100,20,0,50);
             if(bluePucks.size())
-                ROS_INFO("%d blue pucks found!",bluePucks.size());
+                ROS_INFO("%d blue pucks found!",redPucks.size());
             for( size_t i = 0; i < bluePucks.size(); i++ ){   
                 Point center(cvRound(bluePucks[i][0]), cvRound(bluePucks[i][1]));
                 int radius = cvRound(bluePucks[i][2]);
@@ -147,7 +167,9 @@ public:
             vector<Vec3f> greenPucks;
             GaussianBlur(greenThreshold,greenThreshold,Size(9,9),2,2);
             // hough transform to find the circles
-            cv::HoughCircles(greenThreshold, greenPucks, CV_HOUGH_GRADIENT,1,100,100,30,0,0);
+            cv::HoughCircles(greenThreshold, greenPucks, CV_HOUGH_GRADIENT,1,100,100,20,0,50);
+            if(greenPucks.size())
+                ROS_INFO("%d green pucks found!",greenPucks.size());
             for( size_t i = 0; i < greenPucks.size(); i++ ){   
                 Point center(cvRound(greenPucks[i][0]), cvRound(greenPucks[i][1]));
                 int radius = cvRound(greenPucks[i][2]);
@@ -156,12 +178,22 @@ public:
                 // circle outline
                 cv::circle(cv_ptr->image, center, radius, cv::Scalar(0,0,255), 3, 8, 0 );
                 cout<<"found " << greenPucks.size() <<" green puck!" << endl;
+            }*/    
+            Mat gray;
+            cvtColor(cv_ptr->image, gray, CV_BGR2GRAY);
+            GaussianBlur(gray, gray, Size(9,9),2,2);
+            vector<Vec3f> circles;
+            cv::HoughCircles(gray, circles, CV_HOUGH_GRADIENT,1,100,100,20,0,50);
+            for(size_t i = 0; i < circles.size(); i++){
+                Point center(cvRound(circles[i][0]), cvRound(circles[i][1]));
+                int radius = cvRound(circles[i][2]);
+                cv::circle(cv_ptr->image, center, 3, Scalar(0,255,0), -1,8,0);
+                cv::circle(cv_ptr->image,center, radius, Scalar(0,0,255), 3, 8, 0);
+                find_position(center);
+                ROS_INFO("find a circle at position: \tx: %f\ty: %f\tz: %f",puck_w(0), puck_w(1), puck_w(2));
             }
         }
-
-
         // Update GUI Window
-        cv::imshow("blue threshold", blueThreshold);
         cv::imshow(OPENCV_WINDOW, cv_ptr->image);
         cv::waitKey(3);
 
@@ -195,12 +227,28 @@ public:
         image_callback(img);
     }
 
-    void find_position(Point center, Mat img) {
+    void find_position(Point center) {
         cv::Matx31f hom(center.x, center.y, 1);
         
         hom = camera_intrinsic.inv() * hom;
-        x_w = hom(0) / hom(2);// -u_c/fuPixel*puckDistToCam;
-        y_w = hom(1) / hom(2);// -v_c/fvPixel*puckDistToCam;
+        float lambd = sqrt(2)/(hom(0)-sqrt(2)*hom(1)+hom(2));
+        // position in camera frame (meters)
+        puck_c(0) = lambd*hom(0);
+        puck_c(1) = lambd*hom(1);
+        puck_c(2) = lambd*hom(2);
+        // transform to world frame (meters)
+        // P_w = R_transpose*P_c - C, C: translation between two frame
+        Matx44d R_(
+                R.at<double>(0,0),     R.at<double>(0,1),     R.at<double>(0,2),     camera_translation[0],
+                R.at<double>(1,0),     R.at<double>(1,1),     R.at<double>(1,2),     camera_translation[1],
+                R.at<double>(2,0),     R.at<double>(2,1),     R.at<double>(2,2),     camera_translation[2],
+                0,          0,          0,          1);
+        Matx44d R_inv = R_.inv();
+        Matx41d p_c(puck_c(0), puck_c(1), puck_c(2),1.0);
+        Matx41d p_w = R_inv * p_c;
+        puck_w(0) = p_w(0);
+        puck_w(1) = p_w(1);
+        puck_w(2) = p_w(2);
     }
 };
 
