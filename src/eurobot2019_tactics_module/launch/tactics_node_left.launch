@@ -1,0 +1,10 @@
+<launch>
+    <node pkg="eurobot2019_tactics" type="node" name="tactics"
+          output="screen">
+        <!-- Parameters change the settings when the node is launched -->
+        <!-- Units are mm and radians -->
+        <param name="collision_radius" type="double" value="0"/>
+        <param name="tolerance" value="/move_base/DWAPlannerROS/xy_goal_tolerance"/>
+        <param name="ramp_yaw" value=3.1415926/>
+    </node>
+</launch>

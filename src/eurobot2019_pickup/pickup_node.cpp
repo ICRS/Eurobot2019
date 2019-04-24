@@ -132,7 +132,7 @@ int main(int argc, char **argv) {
           target_msg = state_manager.get_target(state_queue.front());
           state_queue.pop();
 
-          while(!command_msg.has_back_up){
+          while(!command_msg.has_backed_up){
             command.set_msg(pickup_status_msg);
             auto command_msg = command.get_msg();
           }
