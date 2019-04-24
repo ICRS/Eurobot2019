@@ -1,75 +1,3 @@
-/////////////////////////////////////////////////////////////////////////////////////////////////////////
-//THIS CODE BLOCK IS OUT OF PLACE, SHOULD BE USED TO FIND A GOAL, GIVEN THE POSITION OF A PUCK
-# define APPROACH_RADIUS 3 //distance away from puck robot must be at, to pick it up
-
-// use make_plan to check that place is free
-// assuming make_plan returns an empty vector, if occupied space
-
-geometry_msgs::PoseStamped Start;
-geometry_msgs::PoseStamped Goal;
-
-
-Start.header.seq = 0;
-Start.header.stamp = ros::Time(0);
-Start.header.frame_id = "/map";
-Start.pose = pose.pose;
-
-// calculate thing around puck
-// set direction/position as x2, y2, cy, sy
-
-double approach_angle = atan2((puck.pose.position.x - pose.pose.position.x), (puck.pose.position.x - pose.pose.position.x));
-double x = puck.pose.position.x - (APPROACH_RADIUS * cos(approach_angle));
-double y = puck.pose.position.y - (APPROACH_RADIUS * sin(approach_angle));
-
-double desired_yaw = constrainAngle(approach_angle - PI/2);
-
-double cy = cos(desired_yaw * 0.5);
-double sy = sin(desired_yaw * 0.5);
-
-Goal.header.seq = 0;
-Goal.header.stamp = ros::Time(0);
-Goal.header.frame_id = "/map";
-Goal.pose.position.x = x;
-Goal.pose.position.y = y;
-Goal.pose.orientation.z = cy;
-Goal.pose.orientation.w = sy;
-
-nav_msgs::GetPlan srv;
-srv.request.start = Start;
-srv.request.goal = Goal;
-srv.request.tolerance = tolerance;
-
-ROS_INFO("Make plan: %d", (check_path.call(srv) ? 1 : 0));
-
-while(response.plan.poses.size() == 0){
-    approach_angle = fmod(rand(), 2*PI);
-    Goal.pose.position.x = puck.pose.position.x - (APPROACH_RADIUS * cos(approach_angle));
-    Goal.pose.position.y = puck.pose.position.y - (APPROACH_RADIUS * sin(approach_angle));
-
-    desired_yaw = constrainAngle(approach_angle - PI/2);
-
-    cy = cos(desired_yaw * 0.5);
-    sy = sin(desired_yaw * 0.5);
-
-    Goal.pose.orientation.z = cy;
-    Goal.pose.orientation.w = sy;
-
-    srv.request.goal = Goal;
-    check_path.call(srv);
-}
-
-ROS_INFO("Plan size: %d", srv.response.plan.poses.size());
-
-goal.target_pose.header.frame_id = "/map";
-goal.target_pose.header.stamp = ros::Time::now(0);
-
-goal.target_pose.pose = Goal.pose;
-
-ROS_INFO("Sending goal");
-ac.sendGoal(goal);
-// CODE BLOCK ENDS HERE
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
 //Hardcoded VERSION
 #include <ros/ros.h>
 #include <eurobot2019_messages/grabber_motors.h>
@@ -211,8 +139,12 @@ int main(int argc, char **argv) {
     int pucks_taken = 0;
     int current_puck_colour;
     bool is_vertical;
+    int blue_pucks = 0;
+    int green_pucks = 0;
+    int score = 0;
 
     bool heading_to_ramp = false;
+    bool final_stage = false;
 
     //wait for the action server to come up
     while(!ac.waitForServer(ros::Duration(5.0))){
@@ -288,6 +220,13 @@ int main(int argc, char **argv) {
             ROS_INFO("Hooray, acquired desired position and orientation");
             eurobot2019_messages::pickup pickup;
             pickup.colour = current_puck_colour;
+            if(current_puck_colour == 2){
+                green_pucks++;
+            }
+
+            else if(current_puck_colour == 3){
+                blue_pucks++;
+            }
             pickup.pos_reached = true;
             pickup.is_vertical = is_vertical;
             pickup_interface.set_msg(pickup);
@@ -353,7 +292,7 @@ int main(int argc, char **argv) {
             // Set next goal + determine if should go to ramp
             auto t2 = std::chrono::high_resolution_clock::now();
             std::chrono::duration<double, std::milli> total_time_span = total_time - t1;
-            if ((pucks_taken < 8 && total_time_span.count()) > 90000) || pucks_taken >= 8){
+            if ((((pucks_taken < 8 && total_time_span.count()) > 80000) || pucks_taken >= 8) && !final_stage){
                //Set goal to ramp
               pose = get_robot_pos(listener, yaw);
               double desired_yaw = ;//0 or pi?
@@ -370,30 +309,31 @@ int main(int argc, char **argv) {
               heading_to_ramp = true;
             }
 
-            else if(heading_to_ramp){
-              //pick up another puck
-              heading_to_ramp = false;
+            else if(final_stage){
+              //pick up puck
+              // head to box
+              //drop
             }
 
             else{
                 //Set goal next puck
                 std::vector <double> puck_score;
                 for(int i = 0; i < poses.poses.size(); i++){
-                double puck_distance = pow(poses.poses[i].position.x - pose.pose.position.x, 2) + pow(poses.poses[i].position.y - pose.pose.position.y, 2);
+                    double puck_distance = pow(poses.poses[i].position.x - pose.pose.position.x, 2) + pow(poses.poses[i].position.y - pose.pose.position.y, 2);
 
-                int puck_value;
+                    int puck_value;
 
-                if (puck_colours[i] = 2){
-                  puck_value = 8//value for green;
+                    if (puck_colours[i] = 2){
+                      puck_value = 8//value for green;
+                    }
+                    else if (puck_colours[i] = 3){
+                      puck_value = 12//value for blue;
+                    }
+                    else{
+                      puck_value = 0;
+                    }
+                    puck_score.push_back(puck_value/puck_distance);//Scale by a constant?
                 }
-                else if ((puck_colours[i] = 3){
-                  puck_value = 12//value for blue;
-                }
-                else{
-                  puck_value = 0;
-                }
-                puck_score.push_back(puck_value/puck_distance);//Scale by a constant?
-              }
 
               int chosen_puck = std::max_element(puck_score.begin(),puck_score.end()) - puck_score.begin();
               geometry_msgs::Pose puck = poses.poses[chosen_puck];
@@ -453,106 +393,126 @@ int main(int argc, char **argv) {
 
               goal.target_pose.pose = Goal.pose;
             }
+        }
 
-            nh.spinOnce();
-
-            sleeper.sleep();
+        else if(heading_to_ramp){
+            heading_to_ramp = false;
+            for(int i = 0; i < blue_pucks; i++){
+                //drop all blue pucks
             }
+
+            score += blue_pucks * 12;
+            score += green_pucks * 8;
+
+            //head to next puck
+
+            final_stage = true;
         }
 
         else{
             ROS_INFO("The base failed to move to next position and orientation");
             //Set goal another puck
             //Assume receiving geometry_msgs::PoseArray poses, array of ints containing colours int* puck_colours[], array of bools containing whether or not is_vertical called is_vertical[]
-            std::vector <double> puck_score;
-            for(int i = 0; i < poses.poses.size(); i++){
-            double puck_distance = pow(poses.poses[i].position.x - pose.pose.position.x, 2) + pow(poses.poses[i].position.y - pose.pose.position.y, 2);
 
-            double proximity_to_prev_goal = pow(poses.poses[i].position.x - goal.target_pose.pose.position.x, 2) + pow(poses.poses[i].position.y - goal.target_pose.pose.position.y, 2);
+            /*Calculate other constraints*/
 
-            int puck_value;
-
-            if (puck_colours[i] = 2){
-              puck_value = //value for green;
+            if(final_stage && /*time_left, other constraints*/){
+                //Go back and deposit, instead of finding another puck
+                //Then, find another puck
             }
-            else if ((puck_colours[i] = 3){
-              puck_value = //value for blue;
-            }
+
             else{
-              puck_value = 0;
-            }
-            puck_score.push_back((puck_value  * pow(proximity_to_prev_goal, (total_collision_time/1000)))/puck_distance);//Scale by a constant?
-          }
+                std::vector <double> puck_score;
+                for(int i = 0; i < poses.poses.size(); i++){
+                double puck_distance = pow(poses.poses[i].position.x - pose.pose.position.x, 2) + pow(poses.poses[i].position.y - pose.pose.position.y, 2);
 
-          int chosen_puck = std::max_element(puck_score.begin(),puck_score.end()) - puck_score.begin();
-          geometry_msgs::Pose puck = poses.poses[chosen_puck];
-          current_puck_colour = puck_colours[chosen_puck];
-          is_vertical = is_vertical[chosen_puck];
+                double proximity_to_prev_goal = pow(poses.poses[i].position.x - goal.target_pose.pose.position.x, 2) + pow(poses.poses[i].position.y - goal.target_pose.pose.position.y, 2);
 
-          geometry_msgs::PoseStamped Start;
-          geometry_msgs::PoseStamped Goal;
+                int puck_value;
 
-          Start.header.seq = 0;
-          Start.header.stamp = ros::Time::now();
-          Start.header.frame_id = "/map";
-          Start.pose = pose.pose;
+                if (puck_colours[i] = 2){
+                  puck_value = 8//value for green;
+                }
+                else if (puck_colours[i] = 3){
+                  puck_value = 12//value for blue;
+                }
+                else{
+                  puck_value = 0;
+                }
+                puck_score.push_back((puck_value  * pow(proximity_to_prev_goal, (total_collision_time/1000)))/puck_distance);//Scale by a constant?
+              }
 
-          if(is_vertical){
-            double x = puck.pose.position.x + APPROACH_RADIUS);
-            double y = puck.pose.position.y ;
+              int chosen_puck = std::max_element(puck_score.begin(),puck_score.end()) - puck_score.begin();
+              geometry_msgs::Pose puck = poses.poses[chosen_puck];
+              current_puck_colour = puck_colours[chosen_puck];
+              is_vertical = is_vertical[chosen_puck];
 
-            double desired_yaw = PI/2;
+              geometry_msgs::PoseStamped Start;
+              geometry_msgs::PoseStamped Goal;
 
-            double cy = cos(desired_yaw * 0.5);
-            double sy = sin(desired_yaw * 0.5);
-          }
-          else {
-            double approach_angle = atan2((puck.pose.position.y - pose.pose.position.y), (puck.pose.position.x - pose.pose.position.x));
-            double x = puck.pose.position.x - (APPROACH_RADIUS * cos(approach_angle));
-            double y = puck.pose.position.y - (APPROACH_RADIUS * sin(approach_angle));
+              Start.header.seq = 0;
+              Start.header.stamp = ros::Time::now();
+              Start.header.frame_id = "/map";
+              Start.pose = pose.pose;
 
-            double desired_yaw = constrainAngle(approach_angle - PI/2);
+              if(is_vertical){
+                double x = puck.pose.position.x + APPROACH_RADIUS;
+                double y = puck.pose.position.y;
 
-            double cy = cos(desired_yaw * 0.5);
-            double sy = sin(desired_yaw * 0.5);
-          }
+                double desired_yaw = PI/2;
+
+                double cy = cos(desired_yaw * 0.5);
+                double sy = sin(desired_yaw * 0.5);
+              }
+
+              else {
+                double approach_angle = atan2((puck.pose.position.y - pose.pose.position.y), (puck.pose.position.x - pose.pose.position.x));
+                double x = puck.pose.position.x - (APPROACH_RADIUS * cos(approach_angle));
+                double y = puck.pose.position.y - (APPROACH_RADIUS * sin(approach_angle));
+
+                double desired_yaw = constrainAngle(approach_angle - PI/2);
+
+                double cy = cos(desired_yaw * 0.5);
+                double sy = sin(desired_yaw * 0.5);
+              }
 
 
-          Goal.header.seq = 0;
-          Goal.header.stamp = ros::Time::now();
-          Goal.header.frame_id = "/map";
-          Goal.pose.position.x = x;
-          Goal.pose.position.y = y;
-          Goal.pose.orientation.z = cy;
-          Goal.pose.orientation.w = sy;
-
-          nav_msgs::GetPlan srv;
-          srv.request.start = Start;
-          srv.request.goal = Goal;
-          srv.request.tolerance = tolerance;
-
-          ROS_INFO("Make plan: %d", (check_path.call(srv) ? 1 : 0));
-
-          while(response.plan.poses.size() == 0){
-              approach_angle = fmod(rand(), 2*PI);
-              Goal.pose.position.x = puck.pose.position.x - (APPROACH_RADIUS * cos(approach_angle));
-              Goal.pose.position.y = puck.pose.position.y - (APPROACH_RADIUS * sin(approach_angle));
-
-              desired_yaw = constrainAngle(approach_angle - PI/2);
-
-              cy = cos(desired_yaw * 0.5);
-              sy = sin(desired_yaw * 0.5);
-
+              Goal.header.seq = 0;
+              Goal.header.stamp = ros::Time::now();
+              Goal.header.frame_id = "/map";
+              Goal.pose.position.x = x;
+              Goal.pose.position.y = y;
               Goal.pose.orientation.z = cy;
               Goal.pose.orientation.w = sy;
 
+              nav_msgs::GetPlan srv;
+              srv.request.start = Start;
               srv.request.goal = Goal;
-              check_path.call(srv);
-          }
+              srv.request.tolerance = tolerance;
 
-          ROS_INFO("Plan size: %d", srv.response.plan.poses.size());
+              ROS_INFO("Make plan: %d", (check_path.call(srv) ? 1 : 0));
 
-          goal.target_pose.pose = Goal.pose;
+              while(response.plan.poses.size() == 0){
+                  approach_angle = fmod(rand(), 2*PI);
+                  Goal.pose.position.x = puck.pose.position.x - (APPROACH_RADIUS * cos(approach_angle));
+                  Goal.pose.position.y = puck.pose.position.y - (APPROACH_RADIUS * sin(approach_angle));
+
+                  desired_yaw = constrainAngle(approach_angle - PI/2);
+
+                  cy = cos(desired_yaw * 0.5);
+                  sy = sin(desired_yaw * 0.5);
+
+                  Goal.pose.orientation.z = cy;
+                  Goal.pose.orientation.w = sy;
+
+                  srv.request.goal = Goal;
+                  check_path.call(srv);
+              }
+
+              ROS_INFO("Plan size: %d", srv.response.plan.poses.size());
+
+              goal.target_pose.pose = Goal.pose;
+            }
         }
 
         nh.spinOnce();
