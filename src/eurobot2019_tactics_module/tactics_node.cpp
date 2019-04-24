@@ -30,6 +30,15 @@
 
 geometry_msgs::PoseArray poses;
 
+// Hardcoded pucks
+// sorry guys :'(
+int pucks_color[32] = {3,3,1,1,2,1,1,2,2,1,3,1,2,2,3,2,1,1,2,3,1,2,1,3,1,2,1,2,1,3,1,2};
+int poses[32][2] = {{0,1300},{0,1700},{450,450},{750,450},{1050,500},{450,2500},{750,2500},{1050,2500},{1050,925},{1050,1075},{975.1000},{1125,1000},{1800,834}.{1800,2166},{2000,125},{2000,225},{2000,325},{2000,2675},{2000,2775},{2000,2875},{1543,500},{1543,600},{1543,700},{1543,800},{1543,900},{1543,1000},{1543,2500},{1543,2400},{1543,2300},{1543,2200},{1543,2100},{1543,2000}};
+bool isVertical[32] ={1,1,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1};
+
+
+typedef actionlib::SimpleActionClient<move_base_msgs::MoveBaseAction> MoveBaseClient;
+
 typedef actionlib::SimpleActionClient<move_base_msgs::MoveBaseAction> MoveBaseClient;
 
 // Function to check if floating point numbers are close enough
