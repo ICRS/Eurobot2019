@@ -250,13 +250,14 @@ int main(int argc, char **argv) {
             //check collision avoidance
 
             static auto t4 = std::chrono::high_resolution_clock::now();
-            while(collision_check(yaw, pose, goal.target_pose, ac)){
+            while(collision_check(yaw, pose, goal, ac)){
                 avoided_collision = true;
                 nh.spinOnce();
                 pose = get_robot_pos(listener, yaw);
             }
 
             if(avoided_collision){
+                ac.cancelGoal();
                 ac.sendGoal(goal);
                 static auto t5 = std::chrono::high_resolution_clock::now();
                 std::chrono::duration<double, std::milli> collision_time = t5 - t4;
@@ -299,13 +300,56 @@ int main(int argc, char **argv) {
                 pickup_interface.get_msg(pickup_status_msg)
                 if(is_vertical){
                   if(pickup_status == 4){
-                    //back up
+                      pose = get_robot_pos(listener, yaw);
+                      double desired_yaw = PI/2;
+                      double x = pose.pose.position.x + 0.05;
+                      double y = pose.pose.position.y;
+                      double cy = cos(desired_yaw * 0.5);
+                      double sy = sin(desired_yaw * 0.5);
+
+                      goal.pose.position.x = x;
+                      goal.pose.position.y = y;
+                      goal.pose.orientation.z = cy;
+                      goal.pose.orientation.w = sy;
+
+                      ROS_INFO("Sending goal");
+                      ac.sendGoal(goal);
+
+                      while(ac.getState() != actionlib::SimpleClientGoalState::SUCCEEDED){
+                          bool avoided_collision = false;
+
+                          while(collision_check(yaw, pose, goal, ac)){
+                              avoided_collision = true;
+                              nh.spinOnce();
+                              pose = get_robot_pos(listener, yaw);
+                          }
+
+                          if(avoided_collision){
+                              ac.cancelGoal();
+                              pose = get_robot_pos(listener, yaw);
+                              nh.spinOnce();
+                              if(collision_avoidance[0]){
+                                  double desired_yaw = PI/2;
+                                  double x = pose.pose.position.x + 0.05;
+                                  double y = pose.pose.position.y;
+                                  double cy = cos(desired_yaw * 0.5);
+                                  double sy = sin(desired_yaw * 0.5);
+
+                                  goal.pose.position.x = x;
+                                  goal.pose.position.y = y;
+                                  goal.pose.orientation = pose.pose.orientation;
+                                  ac.sendGoal();
+                              }
+                          }
+                      }
+                      pickup.has_backed_up = true;
+                      pickup_interface.set_msg(pickup);
                   }
                 }
             }
 
             pucks_taken++;
-            // Send idle command
+            // Send idle command?
             // Set next goal + determine if should go to ramp
             auto t2 = std::chrono::high_resolution_clock::now();
             std::chrono::duration<double, std::milli> total_time_span = total_time - t1;
@@ -454,7 +498,7 @@ int main(int argc, char **argv) {
           Start.pose = pose.pose;
 
           if(is_vertical){
-            
+
           }
           double approach_angle = atan2((puck.pose.position.y - pose.pose.position.y), (puck.pose.position.x - pose.pose.position.x));
           double x = puck.pose.position.x - (APPROACH_RADIUS * cos(approach_angle));

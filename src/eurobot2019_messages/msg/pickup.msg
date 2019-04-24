@@ -7,7 +7,7 @@ bool is_vertical
 bool pos_reached
 
 # If this is true, it signals the robot has backed up
-bool has_back_up
+bool has_backed_up
 
 bool is_high
 
