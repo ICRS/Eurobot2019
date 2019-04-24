@@ -16,7 +16,8 @@ enum GrabberStates {
     ROTATING,
     DEPOSITING_GREEN,
     DEPOSITING_BLUE,
-    DEPOSITING_RED
+    DEPOSITING_RED,
+    BACK_UP
 };
 
 class StateManager {

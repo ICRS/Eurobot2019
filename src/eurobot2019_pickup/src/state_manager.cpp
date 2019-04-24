@@ -12,6 +12,7 @@ StateManager::StateManager(ros::NodeHandle *nh) {
     motor_targets_[DEPOSITING_GREEN] = m;
     motor_targets_[DEPOSITING_BLUE] = m;
     motor_targets_[DEPOSITING_RED] = m;
+    motor_targets_[BACK_UP] = m;
 
     if(!nh->getParam("pickup/idle_out_z_pos",
                      motor_targets_[IDLE_OUT].z_pos_mm)) {
@@ -49,7 +50,7 @@ StateManager::StateManager(ros::NodeHandle *nh) {
                      motor_targets_[OPENING].open_pos_mm)) {
         ROS_ERROR("Failed to get param 'pickup/open_pos'");
     }
-    
+
     if(!nh->getParam("pickup/depositing_z_pos",
                      motor_targets_[DEPOSITING_GREEN].z_pos_mm)) {
         ROS_ERROR("Failed to get param 'pickup/depositing_z_pos'");
@@ -78,7 +79,7 @@ StateManager::StateManager(ros::NodeHandle *nh) {
     }
 }
 
-eurobot2019_messages::grabber_motors 
+eurobot2019_messages::grabber_motors
             StateManager::get_target(GrabberStates state) {
     switch(state) {
     case IDLE_OUT:
