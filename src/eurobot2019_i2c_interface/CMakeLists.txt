@@ -9,9 +9,11 @@ add_compile_options(-std=c++11 -g)
 # is used, also find other catkin packages
 find_package(catkin REQUIRED
   roscpp
+  rospy
   eurobot2019_messages
   std_msgs
   geometry_msgs
+  nav_msgs
   tf2
   tf2_ros
 )
@@ -56,6 +58,11 @@ target_link_libraries(${PROJECT_NAME}_node
 pigpio
 rt
   ${catkin_LIBRARIES}
+)
+
+install(PROGRAMS
+    scripts/odom_hardware.py
+    DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
 #############

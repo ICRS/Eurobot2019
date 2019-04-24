@@ -4,6 +4,7 @@
 #include <queue>
 
 #include <std_msgs/Int32.h>
+#include <std_msgs/Int8MultiArray.h>
 
 #include "message_interface.hpp"
 #include "state_manager.hpp"
@@ -21,9 +22,9 @@ int main(int argc, char **argv) {
     ros::NodeHandle nh;
 
     // Create interface with the hardware node
-    MessageInterface<eurobot2019_messages::grabber_motors,
-                     eurobot2019_messages::grabber_motors>
-                hardware(10, "grabber_motors", 10, "grabber_status");
+    MessageInterface<std_msgs::Int8MultiArray
+                     std_msgs::Int8MultiArray>
+                hardware(10, "grabber_command", 10, "grabber_status");
 
     // Create interface to the tactics node
     MessageInterface<std_msgs::Int32, eurobot2019_messages::pickup>
@@ -33,7 +34,7 @@ int main(int argc, char **argv) {
     StateManager state_manager(&nh);
 
     // Message to be published, and the final target
-    eurobot2019_messages::grabber_motors motor_msg, target_msg;
+    std_msgs::Int8MultiArray motor_msg, target_msg;
 
     // Set the target message for the grabber
     hardware.set_msg(motor_msg);
