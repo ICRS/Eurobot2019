@@ -15,6 +15,7 @@
 #include "std_msgs/Int32.h"
 #include <actionlib/client/simple_action_client.h>
 #include <cmath>
+#include <algorithm>
 #include "message_interface.hpp"
 
 #define CLOSE_ENOUGH //When goal is close enough, such that we can ignore collision_avoidance around adjacent directions adjacent to goal direction
