@@ -1,8 +1,5 @@
 ////Hardcoded VERSION
 #include <ros/ros.h>
-#include <eurobot2019_messages/grabber_motors.h>
-#include <eurobot2019_messages/pickup.h>
-#include <eurobot2019_messages/drop_command.h>
 #include <eurobot2019_messages/collision_avoidance.h>
 #include <tf/transform_listener.h>
 #include "geometry_msgs/Twist.h"
@@ -15,6 +12,7 @@
 #include "nav_msgs/OccupancyGrid.h"
 #include "nav_msgs/GetPlan.h"
 #include "std_msgs/Int32.h"
+#include "std_msgs/Int8MultiArray.h"
 #include <actionlib/client/simple_action_client.h>
 #include <cmath>
 #include <algorithm>
@@ -101,14 +99,10 @@ int main(int argc, char **argv) {
     //Transform from base_link to map
     tf::TransformListener listener;
 
-    // Create interface to the pickup node
-    MessageInterface<eurobot2019_messages::pickup, std_msgs::Int32>
-                pickup_interface(10, "pickup", 10, "pickup_status");
+    // Create interface to the grabber
+    MessageInterface<std_msgs::Int8MultiArray, std_msgs::Int8MultiArray>
+                grabber_interface(10, "grabber_command", 10, "grabber_status");
 
-    MessageInterface<eurobot2019_messages::drop_command, std_msgs::Int32>
-                drop_interface(10, "drop", 10, "drop_status_l");
-
-    ros::Subscriber sub_d_r = nh.subscribe("drop_status_r", 10, sub_d_r_chatterCallback);
     ros::Subscriber sub_map = nh.subscribe("map", 1, sub_map_chatterCallback);
     ros::Subscriber sub_map_metadata = nh.subscribe("map_metadata", 1, sub_map_metadata_chatterCallback);
     ros::Subscriber sub_collision_avoidance = nh.subscribe("collision_avoidance", 1, sub_collision_avoidance_chatterCallback);
@@ -128,6 +122,12 @@ int main(int argc, char **argv) {
     if(!nh.getParam("tactics/collision_radius",
                      collision_radius)) {
         ROS_ERROR("Failed to get param 'tactics/collision_radius'");
+    }
+
+    signed char flipper;
+    signed char[4] grabber_msg_data;
+    if(!nh.getParam("tactics/flipper")) {
+        ROS_ERROR("Failed to get param 'tactics/flipper'");
     }
 
     double tolerance;
@@ -1664,3 +1664,101 @@ repeat
 After some point (time, position, pucks taken, e.t.c., e.g. If not 8 pucks by 90 seconds, head to ramp)
 	Set goal to ramp
 	Drop things*/
+
+// Returns true when puck is successfully grabbed
+// Non-blocking
+bool ready_to_grab(bool is_vertical) {
+    auto grabber_status = grabber_interface.get_message();
+    std_msgs::Int8MultiArray new_msg;
+    if(!grabber_status.data) return false;
+    if(is_vertical) {
+        if(grabber_status.data[0] != 1 
+         || grabber_status.data[1] != 1
+         || grabber_status.data[2] != 0
+         || grabber_status.data[3] != 2) {
+            grabber_msg_data = {1, 1, 0, 2};
+            new_msg.data = grabber_msg_data;
+            grabber_interface.set_message(new_msg);
+            return false;
+        }
+    }
+    else {
+        if(grabber_status.data[0] != 0
+         || grabber_status.data[1] != 0
+         || grabber_status.data[2] != 0
+         || grabber_status.data[3] != 2) {
+            grabber_msg_data = {0, 0, 0, 2};
+            new_msg.data=grabber_msg_data;
+            grabber_interface.set_message(new_msg);
+            return false;
+        }
+    }
+    return true; 
+}
+
+bool grab_puck(bool is_vertical) {
+    if(!ready_to_grab(is_vertical)) {
+        auto grabber_status = grabber_interface.get_message();
+        if((grabber_status.data[0] == 2 && is_vertical))
+            return true;
+        return false;
+    }
+    auto grabber_status = grabber_interface.get_message();
+    if(is_vertical) {
+        if(grabber_status.data[2] != 2) {
+            grabber_status.data[2] = 2;
+            grabber_interface.set_msg(grabber_status);
+            return false;
+        }
+    }
+    else {
+        if(grabber_status.data[2] != 1) {
+            grabber_status.data[2] = 1;
+            grabber_interface.set_msg(grabber_status);
+            return false;
+        }
+    }
+    return true;
+}
+
+bool ready_to_drop() {
+    auto grabber_status = grabber_interface.get_message();
+    std_msgs::Int8MultiArray new_msg;
+    if(grabber_status.data[0] != 2
+     || grabber_status.data[1] != 1
+     || grabber_status.data[2] != 2
+     || grabber_status.data[3] != 2) {
+        grabber_msg_data = {2, 1, 2, 2};
+        new_msg.data = grabber_msg_data;
+        grabber_interface.set_message(new_msg);
+        return false;
+    }
+    return true;
+}
+
+// Blocking drop puck
+void drop_puck() {
+    if(!ready_to_drop()) return false;
+    auto grabber_status = grabber_interface.get_message();
+    do {
+        grabber_status = grabber_interface.get_message();
+        std_msgs::Int8MultiArray new_msg;
+        grabber_msg_data = grabber_status.data;
+        grabber_msg_data[2] = 0;
+        new_msg.data = grabber_msg_data;
+        grabber_interface.set_msg(new_msg);
+    }
+    while(grabber_status.data[2] != 0);
+    while(grabber_status.data[3] != flipper) {
+        std_msgs::Int8MultiArray new_msg;
+        grabber_msg_data = grabber_status.data;
+        grabber_msg_data[3] = flipper;
+        new_msg.data = grabber_msg_data;
+        grabber_interface.set_msg(new_msg);
+    }
+    std_msgs::Int8MultiArray new_msg;
+    grabber_msg_data = {0, 1, 0, 2};
+    new_msg.data = grabber_msg_data;
+    grabber_interface.set_msg(new_msg);
+}
+

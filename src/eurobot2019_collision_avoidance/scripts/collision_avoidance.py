@@ -10,7 +10,6 @@ def process_params():
     pass
 
 def setup_gpio(triggers, echos):
-    GPIO.setmode(GPIO.BCM)
     for trig in triggers:
         GPIO.setup(trig, GPIO.OUT)
     for echo in echos:
@@ -37,12 +36,18 @@ def get_distance(trigger, echo):
     return distance
 
 def main():
+    GPIO.setmode(GPIO.BCM)
+    GPIO.setup(2, GPIO.IN)
+
+    while(GPIO.input(2)):
+        pass
+
     pub = rospy.Publisher('collision_avoidance', CollisionAvoidanceMsg)
     rospy.init_node('collision_avoidance_node')
     rate = rospy.Rate(20)
 
-    triggers = [ 0, 0, 0, 0, 0, 0, 0, 0 ]
-    echos    = [ 0, 0, 0, 0, 0, 0, 0, 0 ]
+    triggers = [ 3, 17, 22, 9 ]
+    echos    = [ 4, 27, 10, 11 ]
     
     setup_gpio(triggers, echos)
 

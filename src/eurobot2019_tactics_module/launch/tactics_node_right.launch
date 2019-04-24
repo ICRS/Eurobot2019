@@ -5,13 +5,14 @@
         <!-- Units are mm and radians -->
         <param name="collision_radius" type="double" value="0"/>
         <param name="tolerance" value="/move_base/DWAPlannerROS/xy_goal_tolerance"/>
-        <param name="green_x" value=1.15/>
-        <param name="green_y" value=0.23/>
-        <param name="red_x" value=1.45/>
-        <param name="red_y" value=0.23/>
-        <param name="ramp_x" value=0.2/>
-        <param name="ramp_y" value=1.06/>
-        <param name="ramp_yaw" value=0/>
+        <param name="green_x" value="1.15"/>
+        <param name="green_y" value="0.23"/>
+        <param name="red_x" value="1.45"/>
+        <param name="red_y" value="0.23"/>
+        <param name="ramp_x" value="0.2"/>
+        <param name="ramp_y" value="1.06"/>
+        <param name="ramp_yaw" value=0"/>
 
+        <param name="flipper" value="1"/>
     </node>
 </launch>

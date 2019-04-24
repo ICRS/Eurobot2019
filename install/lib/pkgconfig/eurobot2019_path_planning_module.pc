@@ -1,0 +1,8 @@
+prefix=/home/nickick/Eurobot2019/install
+
+Name: eurobot2019_path_planning_module
+Description: Description of eurobot2019_path_planning_module
+Version: 0.0.0
+Cflags: 
+Libs: -L/home/nickick/Eurobot2019/install/lib 
+Requires: 

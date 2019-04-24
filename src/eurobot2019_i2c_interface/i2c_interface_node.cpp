@@ -243,7 +243,6 @@ void wheel_vel_to_odom(nav_msgs::Odometry& current_pos, double& current_angle, c
     q = toQuaternion(angular_z, 0, 0);
 
     current_angle += delta_th;
-    current_pos.pose.pose.position.z = current_angle;
     current_pos.pose.pose.position.x += delta_x;
     current_pos.pose.pose.position.y += delta_y;
     current_pos.twist.twist.linear.x = linear_x;
